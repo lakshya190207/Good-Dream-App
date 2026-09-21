@@ -127,7 +127,7 @@ The project uses the **Secrets Gradle Plugin** to protect API keys. A template f
    RECAPTCHA_SITE_KEY=your_recaptcha_site_key
 
    # Google Gmail SMTP (For email OTP verification)
-   SMTP_EMAIL=your_email@gmail.com
+   SMTP_EMAIL=Your-Email
    SMTP_PASSWORD=your_16_character_google_app_password
 
    # Razorpay Payment Gateway (Test key from https://dashboard.razorpay.com/)
@@ -217,7 +217,7 @@ Good-Dream-App/
 ## 👤 Author & Maintainer
 
 * **Author:** Lakshya
-* **Email:** [lakshya190207@gmail.com](mailto:lakshya190207@gmail.com)
+* **Contact:** [care@gooddreamhomedecor.com](mailto:care@gooddreamhomedecor.com)
 * **Organization:** Good Dream Home Decor Private Limited
 
 ---
