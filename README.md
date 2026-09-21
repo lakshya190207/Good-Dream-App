@@ -217,7 +217,7 @@ Good-Dream-App/
 ## 👤 Author & Maintainer
 
 * **Author:** Lakshya
-* **Contact:** [care@gooddreamhomedecor.com](mailto:care@gooddreamhomedecor.com)
+* **Contact:** [Lakshya190207@gmail.com](mailto:Lakshya190207@gmail.com)
 * **Organization:** Good Dream Home Decor Private Limited
 
 ---
