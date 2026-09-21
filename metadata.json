@@ -1,0 +1,6 @@
+{
+  "name": "Good Dream",
+  "description": "Good Dream Home Decor Private Limited - Comfort for a Better Tomorrow. Dynamic catalog showcasing luxury SpringHaven mattresses, furniture, and home furnishings.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

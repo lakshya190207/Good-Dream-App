@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "206625554384",
+    "project_id": "good-dream-75b67",
+    "storage_bucket": "good-dream-75b67.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206625554384:android:0ba3fa3b003720f9c543d5",
+        "android_client_info": {
+          "package_name": "com.aistudio.gooddream.kxmpzq"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHTLg5rMMgzRmnyCYOt225_sUEW9RDV60"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

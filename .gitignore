@@ -1,0 +1,30 @@
+*.iml
+.gradle
+.kotlin
+/local.properties
+local.properties
+.idea/
+.DS_Store
+build/
+*/build/
+**/build/
+/captures
+.externalNativeBuild
+.cxx
+
+# Environment and Secrets
+.env
+.env.*
+!.env.example
+
+# Keystores & Signing
+*.keystore
+*.jks
+debug.keystore
+my-upload-key.jks
+
+# Binaries & Cache
+*.apk
+*.aab
+*.ap_
+.firebase/

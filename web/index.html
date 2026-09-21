@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account & Data Deletion Request | Good Dream & SpringHaven</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --forest-green: #1B4D3E;
+            --forest-green-dark: #0D261F;
+            --forest-green-light: #2A6E58;
+            --satin-gold: #D4AF37;
+            --satin-gold-light: #E8D384;
+            --soft-cream: #FAF8F5;
+            --card-bg: #FFFFFF;
+            --text-main: #1A2421;
+            --text-muted: #5C6B64;
+            --border-color: #E2DDD5;
+            --error-red: #C53030;
+            --success-green: #22543D;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--soft-cream);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 0;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--forest-green-dark), var(--forest-green));
+            color: white;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            border-bottom: 2px solid var(--satin-gold);
+        }
+
+        .brand-eyebrow {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+            color: var(--satin-gold);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .brand-title {
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: white;
+        }
+
+        .brand-subtitle {
+            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 0.5rem;
+        }
+
+        main {
+            max-width: 760px;
+            margin: -1.5rem auto 3rem;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(13, 38, 31, 0.08);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        h2 {
+            font-family: 'Cinzel', serif;
+            color: var(--forest-green);
+            font-size: 1.35rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: #F3EEDB;
+            color: #7D6608;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1.25rem 0;
+        }
+
+        @media (max-width: 600px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .info-box {
+            background: var(--soft-cream);
+            border-left: 3px solid var(--forest-green);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .info-box.retain {
+            border-left-color: var(--satin-gold);
+        }
+
+        .info-box h3 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--forest-green);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-box.retain h3 {
+            color: #8C6D1F;
+        }
+
+        .info-box ul {
+            padding-left: 1.2rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .info-box li {
+            margin-bottom: 0.35rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--forest-green-dark);
+            margin-bottom: 0.4rem;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            background: #FAFAFA;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--forest-green);
+            background: #FFFFFF;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        .checkbox-label input {
+            margin-top: 0.2rem;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, var(--forest-green), var(--forest-green-dark));
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 1rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 12px rgba(27, 77, 62, 0.25);
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(27, 77, 62, 0.35);
+        }
+
+        .direct-email-card {
+            background: linear-gradient(135deg, #F9F6F0, #EFE9DC);
+            border: 1px dashed var(--satin-gold);
+            padding: 1.25rem;
+            border-radius: 12px;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+
+        .direct-email-card a {
+            color: var(--forest-green);
+            font-weight: 700;
+            text-decoration: none;
+            word-break: break-all;
+        }
+
+        .direct-email-card a:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .legal-note {
+            font-size: 0.78rem;
+            color: #7A8981;
+            margin-top: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand-eyebrow">Good Dream Home Decor & SpringHaven Mattress</div>
+        <h1 class="brand-title">Account & Data Deletion Portal</h1>
+        <p class="brand-subtitle">Google Play Store & Indian DPDP Act Compliant Privacy Service</p>
+    </header>
+
+    <main>
+        <div class="card">
+            <span class="badge">Google Play Developer Policy Requirement</span>
+            <h2>User Data Sovereignty & Right to Erasure</h2>
+            <p>
+                Under Google Play Store User Data policies and the Digital Personal Data Protection Act, users who have registered an account with Good Dream are entitled to initiate permanent account and personal data deletion without needing to reinstall or access the mobile application.
+            </p>
+
+            <div class="info-grid">
+                <div class="info-box">
+                    <h3>Data Deleted Permanently</h3>
+                    <ul>
+                        <li>Account profile, verified email, name & phone</li>
+                        <li>Encrypted account passcodes & authentication salt</li>
+                        <li>Active shopping cart items & saved wishlist</li>
+                        <li>Non-warranty service tickets & customer reviews</li>
+                    </ul>
+                </div>
+                <div class="info-box retain">
+                    <h3>Legally Retained Records</h3>
+                    <ul>
+                        <li>Completed GST Tax Invoices (Retained 7 years per Indian Tax Laws)</li>
+                        <li>Active 25-Year Warranty Certificates (To honor future physical mattress repair/replacement claims unless explicitly waived)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <form id="deletionForm" onsubmit="handleFormSubmit(event)">
+                <div class="form-group">
+                    <label for="fullName">Full Customer Name *</label>
+                    <input type="text" id="fullName" name="fullName" placeholder="e.g. Anand Sharma" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Registered Account Email Address *</label>
+                    <input type="email" id="email" name="email" placeholder="e.g. anand@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Registered Phone Number *</label>
+                    <input type="tel" id="phone" name="phone" placeholder="e.g. +91 98765 43210" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="deletionScope">Scope of Deletion Request *</label>
+                    <select id="deletionScope" name="deletionScope">
+                        <option value="complete">Complete Account & Personal Data Deletion</option>
+                        <option value="marketing_only">Opt-Out of Marketing & Concierge Communications</option>
+                        <option value="inquiries_only">Purge Custom Inquiries & Repair Records Only</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="reason">Reason / Additional Instructions (Optional)</label>
+                    <textarea id="reason" name="reason" rows="3" placeholder="Let us know why you are leaving or if you have specific data requests..."></textarea>
+                </div>
+
+                <label class="checkbox-label">
+                    <input type="checkbox" id="consentCheck" required>
+                    <span>I confirm that I am the authorized holder of this account and understand that deleting my account permanently revokes digital VIP concierge privileges and active account sessions.</span>
+                </label>
+
+                <button type="submit" class="btn-submit">Submit Formal Deletion Request →</button>
+            </form>
+
+            <div class="direct-email-card">
+                <p style="margin-bottom: 0.3rem; font-weight: 600; color: var(--forest-green);">Direct Privacy Officer Dispatch</p>
+                <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">You can also submit your request directly via email to our Data Protection Officer:</p>
+                <a href="mailto:Lakshya190207@gmail.com?subject=Account%20and%20Data%20Deletion%20Request%20-%20Good%20Dream">Lakshya190207@gmail.com</a>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>© 2026 Good Dream Home Decor Pvt. Ltd. & SpringHaven Mattress Sanctuary. All Rights Reserved.</p>
+        <p class="legal-note">
+            Registered Office: No. 44, Good Dream Pavilion, Interior Boulevard, Indiranagar, Bengaluru, Karnataka 560038<br>
+            All submitted deletion requests are processed in compliance with the Google Play Store User Data Policy and statutory data retention timelines within 30 business days.
+        </p>
+    </footer>
+
+    <script>
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('fullName').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const scope = document.getElementById('deletionScope').value;
+            const reason = document.getElementById('reason').value.trim();
+
+            const subject = encodeURIComponent(`Formal Account Deletion Request: ${name} (${email})`);
+            const body = encodeURIComponent(
+                `Dear Data Privacy Officer,\n\n` +
+                `Please process my formal request for account and data deletion from Good Dream and SpringHaven systems in accordance with the Google Play Store User Data Policy and Indian DPDP Act.\n\n` +
+                `CUSTOMER DETAILS:\n` +
+                `- Full Name: ${name}\n` +
+                `- Registered Email: ${email}\n` +
+                `- Registered Phone: ${phone}\n` +
+                `- Requested Scope: ${scope}\n` +
+                `- Notes / Reason: ${reason || 'N/A'}\n\n` +
+                `I confirm my consent to delete all personal identifiers and account credentials.\n\n` +
+                `Submitted via Good Dream Official Web Portal.`
+            );
+
+            const mailtoUrl = `mailto:Lakshya190207@gmail.com?subject=${subject}&body=${body}`;
+            
+            alert(`Thank you, ${name}. Your deletion request is ready for transmission to our Data Protection Officer. We will launch your email client now to securely record the dispatch.`);
+            window.location.href = mailtoUrl;
+        }
+    </script>
+</body>
+</html>

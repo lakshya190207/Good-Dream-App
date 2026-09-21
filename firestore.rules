@@ -1,0 +1,53 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (request.auth.token.admin == true || request.auth.token.email == "Lakshya190207@gmail.com");
+    }
+
+    // App Config & Banners (Read-only for public client apps, write-restricted to admins)
+    match /app_config/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Categories: Publicly readable by all client apps, writable only by admins
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Products: Publicly readable for catalog browse & search, writable/deletable only by admins
+    match /products/{productId} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
+    }
+    
+    // Customer Inquiries, Repairs, Complaints, Warranty Requests
+    match /inquiries/{inquiryId} {
+      allow create: if request.resource.data.customerPhone is string
+                    && request.resource.data.customerName is string;
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // Customer Orders: White-Glove & Cash on Delivery Orders
+    match /orders/{orderId} {
+      allow create: if request.resource.data.customerPhone is string
+                    && request.resource.data.totalAmount is number;
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerEmail == request.auth.token.email);
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // Default deny for all other unspecified paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

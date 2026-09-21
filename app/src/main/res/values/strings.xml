@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Good Dream</string>
+    <string name="brand_name">Good Dream Home Decor</string>
+    <string name="brand_tagline">Comfort for a Better Tomorrow</string>
+    <string name="cd_open_drawer">Open navigation drawer</string>
+    <string name="cd_wishlist">View Wishlist</string>
+    <string name="cd_cart">View Shopping Cart</string>
+    <!-- reCAPTCHA Enterprise Site Key for Firebase App Check -->
+    <string name="recaptcha_site_key">6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI</string>
+</resources>

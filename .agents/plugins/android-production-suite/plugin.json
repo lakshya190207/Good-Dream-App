@@ -1,0 +1,4 @@
+{
+  "name": "android-production-suite",
+  "description": "Comprehensive production-ready Android development suite covering Clean Architecture, Compose UI, Offline-First Room DB, Security Hardening, Observability, Testing, and Play Store CI/CD Release."
+}
