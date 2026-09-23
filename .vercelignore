@@ -1,0 +1,39 @@
+# Ignore Android Studio & Gradle project directories
+app/
+gradle/
+macrobenchmark/
+.gradle/
+.idea/
+.agents/
+playstore_assets/
+build/
+**/build/
+*.bin
+
+# Ignore assets, scripts & artifacts
+*.apk
+*.aab
+*.png
+*.pdf
+*.log
+*.py
+debug_net.py
+dump_rzp_elements.py
+find_secret.js
+inspect_dom.py
+inspect_rzp_frames.py
+pay_official_razorpay.py
+test_live_hosted.py
+test_live_website.py
+test_payment_gateway.py
+test_rzp.py
+test_rzp_card_fill.py
+test_rzp_client.py
+test_strict_razorpay.py
+timeline_rzp.py
+track_rzp_lifecycle.py
+generate_client_pitch_pdf.py
+
+# Ignore Firebase functions directory
+functions/
+.firebase/

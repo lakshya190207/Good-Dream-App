@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "env": {
+    "RAZORPAY_KEY_ID": "rzp_test_TfYEXhy3Yk78zc",
+    "RAZORPAY_KEY_SECRET": "WTDOd5sg690FShNz6CCl2j26"
+  },
+  "build": {
+    "env": {
+      "RAZORPAY_KEY_ID": "rzp_test_TfYEXhy3Yk78zc",
+      "RAZORPAY_KEY_SECRET": "WTDOd5sg690FShNz6CCl2j26"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/terms", "destination": "/web/terms.html" },
+    { "source": "/privacy-policy", "destination": "/web/privacy-policy.html" },
+    { "source": "/refund-policy", "destination": "/web/refund-policy.html" },
+    { "source": "/shipping-policy", "destination": "/web/shipping-policy.html" },
+    { "source": "/contact", "destination": "/web/contact.html" },
+    { "source": "/delete-account", "destination": "/web/delete-account.html" },
+    { "source": "/(.*)", "destination": "/web/$1" }
+  ]
+}
