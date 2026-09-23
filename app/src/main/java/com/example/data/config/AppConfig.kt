@@ -7,19 +7,19 @@ import androidx.annotation.Keep
  */
 @Keep
 data class ContactInfo(
-    val phone: String = "+91 80 4123 9999",
-    val whatsapp: String = "+91 98765 43210",
-    val email: String = "care@gooddreamhomedecor.com",
-    val address: String = "No. 44, Good Dream Pavilion, Interior Boulevard, Indiranagar, Bengaluru, Karnataka 560038",
+    val phone: String = "+91 7014983696",
+    val whatsapp: String = "+91 7014983696",
+    val email: String = "gooddreamshomedecor@gmail.com",
+    val address: String = "D-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan\nMarketed by: H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013",
     val workingHours: String = "Mon - Sun: 9:30 AM - 8:30 PM",
     val website: String = "https://gooddreamhomedecor.com"
 ) {
     // Required no-arg constructor for Firestore deserialization
     constructor() : this(
-        phone = "+91 80 4123 9999",
-        whatsapp = "+91 98765 43210",
-        email = "care@gooddreamhomedecor.com",
-        address = "No. 44, Good Dream Pavilion, Interior Boulevard, Indiranagar, Bengaluru, Karnataka 560038",
+        phone = "+91 7014983696",
+        whatsapp = "+91 7014983696",
+        email = "gooddreamshomedecor@gmail.com",
+        address = "D-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan\nMarketed by: H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013",
         workingHours = "Mon - Sun: 9:30 AM - 8:30 PM",
         website = "https://gooddreamhomedecor.com"
     )
@@ -37,10 +37,10 @@ data class ContactInfo(
         fun fromMap(map: Map<String, Any?>?): ContactInfo {
             if (map == null) return ContactInfo()
             return ContactInfo(
-                phone = map["phone"] as? String ?: "+91 80 4123 9999",
-                whatsapp = map["whatsapp"] as? String ?: "+91 98765 43210",
-                email = map["email"] as? String ?: "care@gooddreamhomedecor.com",
-                address = map["address"] as? String ?: "No. 44, Good Dream Pavilion, Interior Boulevard, Indiranagar, Bengaluru, Karnataka 560038",
+                phone = map["phone"] as? String ?: "+91 7014983696",
+                whatsapp = map["whatsapp"] as? String ?: "+91 7014983696",
+                email = map["email"] as? String ?: "gooddreamshomedecor@gmail.com",
+                address = map["address"] as? String ?: "D-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan\nMarketed by: H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013",
                 workingHours = map["workingHours"] as? String ?: "Mon - Sun: 9:30 AM - 8:30 PM",
                 website = map["website"] as? String ?: "https://gooddreamhomedecor.com"
             )
@@ -111,53 +111,20 @@ data class OfferBanner(
  */
 @Keep
 data class AppConfig(
-    val companyName: String = "Good Dream Home Decor Private Limited",
+    val companyName: String = "GOOD DREAMS HOME DECOR PRIVATE LIMITED",
     val tagline: String = "Comfort for a Better Tomorrow",
     val contactInfo: ContactInfo = ContactInfo(),
-    val offerBanners: List<OfferBanner> = listOf(
-        OfferBanner(
-            id = "banner_springhaven",
-            title = "SpringHaven Master Launch Privilege",
-            subtitle = "Complimentary Silk Pillows & Cashmere Topper with Sovereign Series",
-            discountTag = "25% OFF",
-            promoCode = "SPRINGHAVEN25",
-            imageUrl = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1000&auto=format&fit=crop",
-            actionRoute = "cat_springhaven",
-            buttonText = "Explore Sovereign",
-            isActive = true
-        ),
-        OfferBanner(
-            id = "banner_sleep_trial",
-            title = "100-Night Risk-Free Sleep Trial",
-            subtitle = "Zero-Risk Comfort Guarantee on All Orthopedic Mattresses",
-            discountTag = "RISK-FREE",
-            promoCode = "DREAM100",
-            imageUrl = "https://images.unsplash.com/photo-1540518614846-7ede433c4ef0?q=80&w=1000&auto=format&fit=crop",
-            actionRoute = "cat_mattress",
-            buttonText = "Shop Mattresses",
-            isActive = true
-        ),
-        OfferBanner(
-            id = "banner_referral",
-            title = "Privilege Referral Rewards",
-            subtitle = "Earn ₹2,500 Store Credit on Every Friend & Family Referral",
-            discountTag = "₹2,500 BONUS",
-            promoCode = "PRIVILEGE2500",
-            imageUrl = "https://images.unsplash.com/photo-1616046229478-9901c5536a45?q=80&w=1000&auto=format&fit=crop",
-            actionRoute = "PURCHASE_REWARDS",
-            buttonText = "Refer & Earn",
-            isActive = true
-        )
-    ),
-    val announcement: String = "White-Glove Doorstep Delivery & Assembly Complimentary Across Bengaluru",
+    val offerBanners: List<OfferBanner> = emptyList(),
+    val announcement: String = "Doorstep Delivery & Assembly Complimentary Across Jaipur & All India",
     val freeDeliveryThreshold: Double = 999.0,
     val warrantyPolicyUrl: String = "https://gooddreamhomedecor.com/warranty-policy",
     val supportHours: String = "Mon - Sun: 9:30 AM - 8:30 PM",
+    val razorpayKeyId: String = "",
     val lastFetchedAt: Long = System.currentTimeMillis()
 ) {
     // Required no-arg constructor for Firestore deserialization
     constructor() : this(
-        companyName = "Good Dream Home Decor Private Limited",
+        companyName = "GOOD DREAMS HOME DECOR PRIVATE LIMITED",
         tagline = "Comfort for a Better Tomorrow"
     )
 
@@ -170,6 +137,7 @@ data class AppConfig(
         "freeDeliveryThreshold" to freeDeliveryThreshold,
         "warrantyPolicyUrl" to warrantyPolicyUrl,
         "supportHours" to supportHours,
+        "razorpayKeyId" to razorpayKeyId,
         "lastFetchedAt" to lastFetchedAt
     )
 
@@ -182,14 +150,15 @@ data class AppConfig(
             val bannersList = bannersRaw?.map { OfferBanner.fromMap(it) } ?: AppConfig().offerBanners
 
             return AppConfig(
-                companyName = map["companyName"] as? String ?: "Good Dream Home Decor Private Limited",
+                companyName = map["companyName"] as? String ?: "GOOD DREAMS HOME DECOR PRIVATE LIMITED",
                 tagline = map["tagline"] as? String ?: "Comfort for a Better Tomorrow",
                 contactInfo = ContactInfo.fromMap(contactMap),
                 offerBanners = bannersList,
-                announcement = map["announcement"] as? String ?: "White-Glove Doorstep Delivery & Assembly Complimentary Across Bengaluru",
+                announcement = map["announcement"] as? String ?: "Doorstep Delivery & Assembly Complimentary Across Jaipur & All India",
                 freeDeliveryThreshold = (map["freeDeliveryThreshold"] as? Number)?.toDouble() ?: 999.0,
                 warrantyPolicyUrl = map["warrantyPolicyUrl"] as? String ?: "https://gooddreamhomedecor.com/warranty-policy",
                 supportHours = map["supportHours"] as? String ?: "Mon - Sun: 9:30 AM - 8:30 PM",
+                razorpayKeyId = map["razorpayKeyId"] as? String ?: "",
                 lastFetchedAt = (map["lastFetchedAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
             )
         }

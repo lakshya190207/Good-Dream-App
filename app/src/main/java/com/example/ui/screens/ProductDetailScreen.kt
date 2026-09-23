@@ -92,8 +92,37 @@ fun ProductDetailScreen(
         snackbarHost = {
             SnackbarHost(
                 hostState = snackbarHostState,
-                modifier = Modifier.navigationBarsPadding()
-            )
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) { snackbarData ->
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = ForestGreenDark,
+                    border = BorderStroke(1.dp, SatinGoldAccent.copy(alpha = 0.8f)),
+                    shadowElevation = 6.dp,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = SatinGoldAccent,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = snackbarData.visuals.message,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
         },
         topBar = {
             Surface(
@@ -413,7 +442,7 @@ fun ProductDetailScreen(
                         .padding(horizontal = 14.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    itemsIndexed(images) { index, imgUrl ->
+                    itemsIndexed(images, key = { index, imgUrl -> "$index-$imgUrl" }) { index, imgUrl ->
                         Box(
                             modifier = Modifier
                                 .size(60.dp)
@@ -645,12 +674,12 @@ fun ProductDetailScreen(
                     .clickable {
                         val message = "Hello Good Dream Team! I am interested in ${product.title} (SKU: ${product.sku}, $formattedPrice). Could you please assist me with custom sizing, firmness ratings, and delivery timelines?"
                         val encodedMessage = Uri.encode(message)
-                        val url = "https://api.whatsapp.com/send?phone=+918041239999&text=$encodedMessage"
+                        val url = "https://api.whatsapp.com/send?phone=+917014983696&text=$encodedMessage"
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                         try {
                             pdpContext.startActivity(intent)
                         } catch (e: Exception) {
-                            val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+918041239999"))
+                            val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+917014983696"))
                             pdpContext.startActivity(dialIntent)
                         }
                     },
@@ -1038,13 +1067,14 @@ fun ProductDetailScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     SpecTableRow("Country of Origin", "India")
-                    SpecTableRow("Manufacturer & Packer", "Good Dream Luxury Home Decor Pvt. Ltd.\nPlot 42, KIADB Industrial Area, Phase II, Whitefield, Bengaluru, Karnataka - 560066")
+                    SpecTableRow("Manufacturer & Packer", "GOOD DREAMS HOME DECOR PRIVATE LIMITED\nD-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan")
+                    SpecTableRow("Marketed by", "H P PRODUCTS\nAddress: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013")
                     SpecTableRow("Generic Name", "Luxury Orthopedic Mattress")
                     SpecTableRow("Net Quantity", "1 Unit Mattress")
                     SpecTableRow("Physical Dimensions", "${product.dimensions} × ${product.thicknessInches}\" Profile")
                     SpecTableRow("Maximum Retail Price", "$formattedOriginal (Inclusive of all Taxes / 18% GST)")
-                    SpecTableRow("Customer Care Helpline", "1800-425-9999 (Toll-Free) | care@gooddream.in")
-                    SpecTableRow("Grievance Redressal", "Nodal Grievance Officer | grievance@gooddream.in\nAck: 48h • Resolution: 30 days")
+                    SpecTableRow("Customer Care Helpline", "+91 7014983696 | gooddreamshomedecor@gmail.com")
+                    SpecTableRow("Grievance Redressal", "Nodal Grievance Officer | gooddreamshomedecor@gmail.com\nAck: 48h • Resolution: 30 days")
                 }
             }
 

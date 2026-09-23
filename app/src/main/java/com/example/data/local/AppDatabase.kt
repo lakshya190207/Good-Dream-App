@@ -16,9 +16,10 @@ import com.example.data.model.*
         WishlistItemEntity::class,
         InquiryEntity::class,
         AppConfigEntity::class,
-        OrderEntity::class
+        OrderEntity::class,
+        UserEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,6 +30,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun inquiryDao(): InquiryDao
     abstract fun appConfigDao(): AppConfigDao
     abstract fun orderDao(): OrderDao
+    abstract fun userDao(): UserDao
 
     companion object {
         @Volatile
@@ -66,13 +68,32 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `users` (
+                        `email` TEXT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `phone` TEXT NOT NULL DEFAULT '',
+                        `userType` TEXT NOT NULL DEFAULT 'REGISTERED_VIP',
+                        `hashedPasscode` TEXT NOT NULL DEFAULT '',
+                        `notes` TEXT NOT NULL DEFAULT '',
+                        `addressesJson` TEXT NOT NULL DEFAULT '[]',
+                        `isCurrentSession` INTEGER NOT NULL DEFAULT 0,
+                        `createdAtEpochMs` INTEGER NOT NULL,
+                        PRIMARY KEY(`email`)
+                    )
+                """.trimIndent())
+            }
+        }
+
         fun getInstance(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "good_dream_catalog.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                  .fallbackToDestructiveMigrationOnDowngrade(true)
                  .build()
                 INSTANCE = instance

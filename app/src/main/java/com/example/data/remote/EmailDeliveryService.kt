@@ -35,7 +35,7 @@ class EmailDeliveryService(
     companion object {
         private const val TAG = "EmailDeliveryService"
         private const val SMTP_HOST = "smtp.gmail.com"
-        private const val TIMEOUT_MS = 15_000
+        private const val TIMEOUT_MS = 4_000
 
         fun maskEmail(email: String): String {
             val at = email.indexOf('@')
@@ -50,9 +50,9 @@ class EmailDeliveryService(
     private fun getSenderEmail(): String {
         return try {
             val cfgEmail = BuildConfig.SMTP_EMAIL
-            if (!cfgEmail.isNullOrBlank()) cfgEmail.trim() else "Lakshya190207@gmail.com"
+            if (!cfgEmail.isNullOrBlank()) cfgEmail.trim() else "gooddreamshomedecor@gmail.com"
         } catch (e: Throwable) {
-            "Lakshya190207@gmail.com"
+            "gooddreamshomedecor@gmail.com"
         }
     }
 
@@ -81,10 +81,13 @@ class EmailDeliveryService(
         val appPassword = getSenderPassword()
 
         if (appPassword.isBlank()) {
-            Timber.tag(TAG).w("Notice: Google App Password is not set in .env.")
-            return@withContext EmailSendResult.MissingCredentials(
-                "Google App Password not configured. Please set SMTP_PASSWORD in .env."
-            )
+            Timber.tag(TAG).i("Google App Password not configured in client build. Enqueueing to secure Firestore cloud queue.")
+            val enqueued = enqueueFirestoreMailRecord(senderEmail, recipientEmail, subject, htmlBody)
+            return@withContext if (enqueued) {
+                EmailSendResult.Success("Verification email enqueued for secure cloud delivery to ${maskEmail(recipientEmail)}")
+            } else {
+                EmailSendResult.Failure("Unable to connect to email delivery service. Please try again.")
+            }
         }
 
         // 1. Attempt Primary Port 465 (SMTPS)
@@ -99,8 +102,17 @@ class EmailDeliveryService(
             }
         }
 
-        // 3. Asynchronously record to Firestore for queue/audit without blocking email delivery
-        enqueueFirestoreMailRecord(senderEmail, recipientEmail, subject, htmlBody)
+        // 3. If direct SMTP fails, fallback to Firestore cloud queue
+        if (result is EmailSendResult.Failure) {
+            Timber.tag(TAG).w("Direct SMTP ports unreachable. Falling back to secure Firestore cloud queue.")
+            val enqueued = enqueueFirestoreMailRecord(senderEmail, recipientEmail, subject, htmlBody)
+            if (enqueued) {
+                return@withContext EmailSendResult.Success("Email routed via backup cloud dispatch to ${maskEmail(recipientEmail)}")
+            }
+        } else {
+            // Asynchronously record to Firestore for queue/audit without blocking email delivery
+            enqueueFirestoreMailRecord(senderEmail, recipientEmail, subject, htmlBody)
+        }
 
         result
     }
@@ -463,8 +475,8 @@ class EmailDeliveryService(
         recipientEmail: String,
         subject: String,
         htmlBody: String
-    ) {
-        try {
+    ): Boolean {
+        return try {
             val db = FirebaseFirestore.getInstance()
             val mailData = hashMapOf(
                 "to" to listOf(recipientEmail),
@@ -476,8 +488,11 @@ class EmailDeliveryService(
                 )
             )
             db.collection("mail").add(mailData)
+            Timber.tag(TAG).i("Successfully enqueued mail record to Firestore 'mail' collection for %s", maskEmail(recipientEmail))
+            true
         } catch (e: Throwable) {
             Timber.tag(TAG).w("Notice: Could not enqueue Firestore mail record: ${e.message}")
+            false
         }
     }
 
@@ -623,10 +638,11 @@ class EmailDeliveryService(
                       <tr>
                         <td style="background-color: #FAFAFA; border-top: 1px solid #EEEEEE; padding: 20px 28px; text-align: center;">
                           <p style="margin: 0 0 6px 0; color: #888888; font-size: 12px;">
-                            Direct Concierge Desk: <strong style="color: #1B3B2B;">+91 80 4123 9999</strong> • <a href="mailto:support@gooddream.in" style="color: #D4AF37; text-decoration: none;">support@gooddream.in</a>
+                            Direct Concierge Desk: <strong style="color: #1B3B2B;">+91 7014983696</strong> • <a href="mailto:gooddreamshomedecor@gmail.com" style="color: #D4AF37; text-decoration: none;">gooddreamshomedecor@gmail.com</a>
                           </p>
                           <p style="margin: 0; color: #BBBBBB; font-size: 11px;">
-                            © 2026 Good Dream Home Decor Private Limited • Bangalore Flagship Sanctuary
+                            © 2026 GOOD DREAMS HOME DECOR PRIVATE LIMITED • Jaipur Flagship Sanctuary<br>
+                            Marketed by: H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013
                           </p>
                         </td>
                       </tr>

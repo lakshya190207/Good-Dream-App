@@ -22,9 +22,12 @@ build/
 *.jks
 debug.keystore
 my-upload-key.jks
+keystore.properties
 
 # Binaries & Cache
 *.apk
 *.aab
 *.ap_
 .firebase/
+node_modules/
+.vercel

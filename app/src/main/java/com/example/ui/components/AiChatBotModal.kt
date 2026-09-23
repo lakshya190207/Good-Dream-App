@@ -47,6 +47,7 @@ fun AiChatBotModal(
     onSendMessage: (String) -> Unit,
     onClearChat: () -> Unit,
     onClose: () -> Unit,
+    onOpenLiveSupport: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var inputText by remember { mutableStateOf("") }
@@ -62,11 +63,12 @@ fun AiChatBotModal(
 
     val suggestedQuestions = remember {
         listOf(
+            "👩‍💼 Connect with Human Specialist",
             "💡 Best mattress for back pain?",
             "📏 King vs Queen dimensions?",
             "✨ How to clean mattress stains?",
-            "🛡️ 100-Night trial policy?",
-            "🚚 White-Glove delivery details?",
+            "🛡️ 25-Year Warranty details?",
+            "🚚 Delivery details?",
             "🪡 Custom bespoke sizing request"
         )
     }
@@ -154,6 +156,20 @@ fun AiChatBotModal(
 
 
 
+                            // Talk to Live Specialist
+                            IconButton(
+                                onClick = onOpenLiveSupport,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .testTag("ai_chat_live_support_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.SupportAgent,
+                                    contentDescription = "Talk to Human Specialist",
+                                    tint = SatinGoldAccent
+                                )
+                            }
+
                             // Clear chat
                             IconButton(
                                 onClick = onClearChat,
@@ -196,7 +212,7 @@ fun AiChatBotModal(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 contentPadding = PaddingValues(horizontal = 2.dp)
                             ) {
-                                items(suggestedQuestions) { prompt ->
+                                items(suggestedQuestions, key = { it }) { prompt ->
                                     Surface(
                                         shape = RoundedCornerShape(16.dp),
                                         color = MaterialTheme.colorScheme.surface,
@@ -205,7 +221,11 @@ fun AiChatBotModal(
                                         modifier = Modifier
                                             .defaultMinSize(minHeight = 44.dp)
                                             .clickable {
-                                                onSendMessage(prompt.substringAfter(" "))
+                                                if (prompt.contains("Human Specialist")) {
+                                                    onOpenLiveSupport()
+                                                } else {
+                                                    onSendMessage(prompt.substringAfter(" "))
+                                                }
                                             }
                                     ) {
                                         Box(

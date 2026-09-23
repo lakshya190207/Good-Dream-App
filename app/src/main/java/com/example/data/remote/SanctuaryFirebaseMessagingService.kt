@@ -35,7 +35,7 @@ class SanctuaryFirebaseMessagingService : FirebaseMessagingService() {
 
         val body = remoteMessage.notification?.body
             ?: remoteMessage.data["body"]
-            ?: "New White-Glove artisan update."
+            ?: "New order delivery update."
 
         NotificationHelper.showRemoteNotification(
             context = applicationContext,

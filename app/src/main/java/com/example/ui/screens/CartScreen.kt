@@ -465,7 +465,7 @@ fun CartScreen(
                     }
                 }
 
-                // White Glove Delivery Perks Banner
+                // Delivery Perks Banner
                 item {
                     Card(
                         shape = RoundedCornerShape(16.dp),
@@ -494,7 +494,7 @@ fun CartScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "White-Glove Delivery & Room Setup",
+                                    text = "Doorstep Delivery & Room Setup",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurface
@@ -544,13 +544,17 @@ fun CartScreen(
                             )
                         }
 
-                        // Offer 1: WELCOME25 (25% OFF)
+                        // Single Exclusive Member Privilege Pass: Unlocked exclusively upon signup/login
                         CartOfferVoucherCard(
-                            title = "SpringHaven 25% Member Welcome Privilege",
-                            tag = "MEMBER EXCLUSIVE",
+                            title = "SpringHaven 25% Member Privilege",
+                            tag = if (isUserLoggedIn) "UNLOCKED" else "MEMBER EXCLUSIVE",
                             discountText = "FLAT 25% OFF",
                             code = "WELCOME25",
-                            description = "Exclusive 25% privilege discount for registered sanctuary members.",
+                            description = if (isUserLoggedIn) {
+                                "Exclusive 25% sanctuary privilege discount unlocked for your verified account."
+                            } else {
+                                "Exclusive privilege voucher. Unlocks instantly when you sign up or log in to your account."
+                            },
                             isApplied = appliedDiscountPercent == 25,
                             isLocked = !isUserLoggedIn,
                             lockedButtonText = "Sign In to Unlock",
@@ -569,78 +573,6 @@ fun CartScreen(
                                 }
                             }
                         )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Offer 2: SANCTUARY20 (20% OFF)
-                        CartOfferVoucherCard(
-                            title = "Sanctuary Haven Sitewide Special",
-                            tag = "LIMITED TIME",
-                            discountText = "20% OFF",
-                            code = "SANCTUARY20",
-                            description = "Valid on all handcrafted luxury mattresses and ergonomic toppers.",
-                            isApplied = appliedDiscountPercent == 20 && appliedCouponCode == "SANCTUARY20",
-                            isLocked = false,
-                            onApply = {
-                                if (appliedDiscountPercent == 20 && appliedCouponCode == "SANCTUARY20") {
-                                    onRemoveCoupon?.invoke()
-                                    couponMessage = "Privilege voucher removed."
-                                } else {
-                                    couponCode = "SANCTUARY20"
-                                    couponMessage = "✓ 20% Sanctuary Discount Applied!"
-                                    onApplyCoupon?.invoke("SANCTUARY20", 20)
-                                }
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        // Offer 3: DECORFEST5K (15% OFF)
-                        CartOfferVoucherCard(
-                            title = "Master Suite Festive Upgrade",
-                            tag = "SUITE CREDIT",
-                            discountText = "15% OFF",
-                            code = "DECORFEST5K",
-                            description = "Complimentary suite upgrade savings on handcrafted solid wood furniture.",
-                            isApplied = appliedDiscountPercent == 15 && appliedCouponCode == "DECORFEST5K",
-                            isLocked = false,
-                            onApply = {
-                                if (appliedDiscountPercent == 15 && appliedCouponCode == "DECORFEST5K") {
-                                    onRemoveCoupon?.invoke()
-                                    couponMessage = "Privilege voucher removed."
-                                } else {
-                                    couponCode = "DECORFEST5K"
-                                    couponMessage = "✓ 15% Festive Privilege Applied!"
-                                    onApplyCoupon?.invoke("DECORFEST5K", 15)
-                                }
-                            }
-                        )
-
-                        // Any dynamic active offers configured from Firestore Admin CMS
-                        val activeCustomOffers = offerBanners.filter { it.isActive && it.promoCode.isNotBlank() }
-                        for (customOffer in activeCustomOffers) {
-                            Spacer(modifier = Modifier.height(10.dp))
-                            val isCustomApplied = appliedCouponCode.equals(customOffer.promoCode, ignoreCase = true)
-                            CartOfferVoucherCard(
-                                title = customOffer.title,
-                                tag = if (customOffer.discountTag.isNotBlank()) customOffer.discountTag else "DYNAMIC BENEFIT",
-                                discountText = if (customOffer.discountTag.isNotBlank()) customOffer.discountTag else "SPECIAL",
-                                code = customOffer.promoCode,
-                                description = customOffer.subtitle,
-                                isApplied = isCustomApplied,
-                                isLocked = false,
-                                onApply = {
-                                    if (isCustomApplied) {
-                                        onRemoveCoupon?.invoke()
-                                        couponMessage = "Privilege code removed."
-                                    } else {
-                                        couponCode = customOffer.promoCode
-                                        couponMessage = "✓ Privilege Code ${customOffer.promoCode} Applied!"
-                                        onApplyCoupon?.invoke(customOffer.promoCode, 20)
-                                    }
-                                }
-                            )
-                        }
                     }
                 }
 
@@ -653,7 +585,7 @@ fun CartScreen(
                     ) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Text(
-                                text = "Have Another Privilege Code?",
+                                text = "Have an Exclusive Privilege Code?",
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -666,7 +598,7 @@ fun CartScreen(
                                 OutlinedTextField(
                                     value = couponCode,
                                     onValueChange = { couponCode = it.uppercase() },
-                                    placeholder = { Text("e.g. WELCOME25 or SANCTUARY20", fontSize = 12.sp) },
+                                    placeholder = { Text("e.g. WELCOME25", fontSize = 12.sp) },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp),
                                     singleLine = true,
@@ -685,29 +617,11 @@ fun CartScreen(
                                                     couponMessage = "✓ 25% Member Privilege Discount Applied!"
                                                     onApplyCoupon?.invoke(code, 25)
                                                 } else {
-                                                    couponMessage = "Please sign in or register to unlock the 25% member privilege!"
+                                                    couponMessage = "Please sign in or register to unlock your 25% member privilege!"
                                                 }
-                                            }
-                                            code == "SANCTUARY20" || code == "DREAM20" -> {
-                                                couponMessage = "✓ 20% Sanctuary Discount Applied!"
-                                                onApplyCoupon?.invoke(code, 20)
-                                            }
-                                            code == "DECORFEST5K" || code == "FESTIVE15" -> {
-                                                couponMessage = "✓ 15% Festive Privilege Applied!"
-                                                onApplyCoupon?.invoke(code, 15)
-                                            }
-                                            code == "WHITEGLOVE" -> {
-                                                couponMessage = "✓ Complimentary White-Glove Installation Included Free!"
-                                                onApplyCoupon?.invoke(code, 0)
                                             }
                                             code.isNotBlank() -> {
-                                                val custom = offerBanners.firstOrNull { it.promoCode.equals(code, ignoreCase = true) }
-                                                if (custom != null) {
-                                                    couponMessage = "✓ Privilege Code ${custom.promoCode} Applied!"
-                                                    onApplyCoupon?.invoke(custom.promoCode, 20)
-                                                } else {
-                                                    couponMessage = "Invalid code. Try SANCTUARY20 or WELCOME25 (for members)."
-                                                }
+                                                couponMessage = "Invalid code. Only authenticated member privilege (WELCOME25) is eligible."
                                             }
                                         }
                                     },
@@ -746,7 +660,7 @@ fun CartScreen(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             PriceSummaryRow("Items Subtotal", currencyFormatter.format(totalPrice))
-                            PriceSummaryRow("White-Glove Room Delivery & Installation", "FREE (₹0)", isHighlight = true)
+                            PriceSummaryRow("Doorstep Delivery & Installation", "FREE (₹0)", isHighlight = true)
                             if (appliedDiscountPercent > 0) {
                                 PriceSummaryRow("Privilege Discount ($appliedDiscountPercent%)", "- ${currencyFormatter.format(discountAmount)}", isHighlight = true)
                             }
@@ -783,7 +697,7 @@ fun CartScreen(
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         AssuranceChip(icon = Icons.Outlined.Security, text = "25-Yr Warranty")
-                        AssuranceChip(icon = Icons.Outlined.VerifiedUser, text = "100-Night Trial")
+                        AssuranceChip(icon = Icons.Outlined.VerifiedUser, text = "White-Glove Setup")
                         AssuranceChip(icon = Icons.Outlined.LocalShipping, text = "Safe Delivery")
                     }
                     Spacer(modifier = Modifier.height(24.dp))

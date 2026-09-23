@@ -3,6 +3,7 @@ package com.example
 import android.app.Application
 import android.util.Log
 import com.example.data.config.AppConfigProvider
+import com.example.data.config.FirebaseRemoteConfigHelper
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
@@ -14,6 +15,9 @@ import coil.memory.MemoryCache
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.HiltAndroidApp
 import android.os.StrictMode
+import okhttp3.ConnectionPool
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 import timber.log.Timber
 
 @HiltAndroidApp
@@ -28,7 +32,6 @@ class GoodDreamApplication : Application(), ImageLoaderFactory {
                     .detectDiskWrites()
                     .detectNetwork()
                     .penaltyLog()
-                    .penaltyFlashScreen()
                     .build()
             )
             StrictMode.setVmPolicy(
@@ -43,22 +46,32 @@ class GoodDreamApplication : Application(), ImageLoaderFactory {
         initializeLogging()
         initializeFirebaseAppCheck()
         AppConfigProvider.fetchAtStartup(this)
+        FirebaseRemoteConfigHelper.init(this)
     }
 
     override fun newImageLoader(): ImageLoader {
+        val okHttpClient = OkHttpClient.Builder()
+            .connectionPool(ConnectionPool(10, 2, TimeUnit.MINUTES))
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build()
+
         return ImageLoader.Builder(this)
+            .okHttpClient(okHttpClient)
             .memoryCache {
                 MemoryCache.Builder(this)
-                    .maxSizePercent(0.25)
+                    .maxSizePercent(0.30)
+                    .strongReferencesEnabled(true)
                     .build()
             }
             .diskCache {
                 DiskCache.Builder()
                     .directory(cacheDir.resolve("image_cache"))
-                    .maxSizeBytes(100L * 1024 * 1024)
+                    .maxSizeBytes(250L * 1024 * 1024)
                     .build()
             }
-            .crossfade(250)
+            .allowHardware(true)
+            .crossfade(100)
             .respectCacheHeaders(false)
             .build()
     }

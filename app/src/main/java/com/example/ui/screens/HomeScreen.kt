@@ -3,10 +3,13 @@ package com.example.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.res.painterResource
+import com.example.R
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -148,163 +151,20 @@ fun HomeScreen(
             }
         }
 
-        // Dynamic Offer Banner from AppConfig (Firestore)
-        if (!isLoading && appConfig.offerBanners.any { it.isActive }) {
-            val activeOffer = appConfig.offerBanners.first { it.isActive }
-            item(span = { GridItemSpan(2) }) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onOpenModal(ActiveModal.CART) }
-                        .testTag("home_dynamic_offer_card"),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, SatinGoldAccent)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalOffer,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(
-                                    text = activeOffer.title,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.5.sp,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                Text(
-                                    text = "${activeOffer.discountTag} • Use Code: ${activeOffer.promoCode}",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = ForestGreenPrimary
-                        ) {
-                            Text(
-                                text = "CLAIM",
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Trust Pillars Strip (10-Yr Warranty | 100-Night Trial | Free Delivery)
+        // Trust Pillars Strip (10-Yr Warranty | White-Glove Delivery | Handcrafted)
         item(span = { GridItemSpan(2) }) {
             HomeTrustPillarsStrip()
         }
 
-        // Interactive Bespoke Mattress Architect Hero Banner
+        // Unified Precision Sleep & Bespoke Suite (3D Atelier, Sleep Tools & AI Concierge)
         item(span = { GridItemSpan(2) }) {
-            HomeBespokeAtelierBanner(
-                onOpenBespokeStudio = { onOpenModal(ActiveModal.BESPOKE_STUDIO) }
-            )
-        }
-
-        // Precision Sleep & Service Suite: Firmness Quiz | Compare Models | Live Order Tracker
-        item(span = { GridItemSpan(2) }) {
-            HomeSleepToolsCard(
+            HomeSanctuarySuiteCard(
+                onOpenBespokeStudio = { onOpenModal(ActiveModal.BESPOKE_STUDIO) },
                 onOpenSleepQuiz = { onOpenModal(ActiveModal.SLEEP_QUIZ) },
                 onOpenComparison = { onOpenModal(ActiveModal.COMPARE_PRODUCTS) },
-                onOpenOrderTracking = { onOpenModal(ActiveModal.ORDER_TRACKING) }
+                onOpenOrderTracking = { onOpenModal(ActiveModal.ORDER_TRACKING) },
+                onOpenAiConcierge = { onOpenModal(ActiveModal.AI_CHAT_BOT) }
             )
-        }
-
-        // DreamCare AI Concierge Banner
-        item(span = { GridItemSpan(2) }) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .cushionPressEffect()
-                    .clickable { onOpenModal(ActiveModal.AI_CHAT_BOT) }
-                    .testTag("home_ai_concierge_banner"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, SatinGoldAccent.copy(alpha = 0.4f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SmartToy,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "DreamCare AI Concierge",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = SatinGoldContainer
-                            ) {
-                                Text(
-                                    text = "ASSIST",
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = SatinGoldDark,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                        Text(
-                            text = "Mattress sizing, ergonomic firmness, cleaning & care advice",
-                            fontSize = 11.5.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                        contentDescription = "Chat with AI",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(13.dp)
-                    )
-                }
-            }
         }
 
         // Section Header Label
@@ -403,7 +263,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
-                        text = "Good Dream Home Decor Private Limited\nNo. 44, Good Dream Pavilion, Interior Boulevard,\nIndiranagar, Bengaluru, Karnataka 560038",
+                        text = "GOOD DREAMS HOME DECOR PRIVATE LIMITED\nD-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan\nMarketed by: H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013",
                         style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Medium
@@ -438,7 +298,7 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "White-Glove In-Store Trials Available",
+                            text = "Experience Studio Available",
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -481,9 +341,9 @@ fun HomeHeroShowcaseCard(
                 .fillMaxWidth()
                 .height(230.dp)
         ) {
-            // Serene Luxury Master Bedroom Visual Backdrop
-            LuxuryAsyncImage(
-                imageUrl = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1200&auto=format&fit=crop",
+            // Serene Luxury Master Bedroom Visual Backdrop - Zero-latency instant local rendering
+            Image(
+                painter = painterResource(id = R.drawable.hero_master_bedroom),
                 contentDescription = "Master Bedroom Haven",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -547,7 +407,7 @@ fun HomeHeroShowcaseCard(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "100-Night Trial",
+                                text = "White-Glove Setup",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -641,7 +501,7 @@ fun HomeTrustPillarsStrip(modifier: Modifier = Modifier) {
                 modifier = Modifier.height(18.dp),
                 color = SatinGoldDark.copy(alpha = 0.25f)
             )
-            TrustItem(icon = Icons.Default.LocalShipping, title = "Direct White Glove")
+            TrustItem(icon = Icons.Default.LocalShipping, title = "Free Delivery")
             VerticalDivider(
                 modifier = Modifier.height(18.dp),
                 color = SatinGoldDark.copy(alpha = 0.25f)
@@ -774,10 +634,12 @@ fun HomeFeatureGridCard(
 }
 
 @Composable
-fun HomeSleepToolsCard(
+fun HomeSanctuarySuiteCard(
+    onOpenBespokeStudio: () -> Unit,
     onOpenSleepQuiz: () -> Unit,
     onOpenComparison: () -> Unit,
     onOpenOrderTracking: () -> Unit,
+    onOpenAiConcierge: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -787,11 +649,12 @@ fun HomeSleepToolsCard(
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
             modifier = Modifier.padding(14.dp)
         ) {
+            // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -799,7 +662,7 @@ fun HomeSleepToolsCard(
             ) {
                 Column {
                     Text(
-                        text = "PRECISION SLEEP & SERVICE SUITE",
+                        text = "PRECISION SLEEP & BESPOKE SUITE",
                         style = MaterialTheme.typography.labelSmall.copy(
                             letterSpacing = 1.2.sp,
                             fontWeight = FontWeight.Bold
@@ -807,7 +670,7 @@ fun HomeSleepToolsCard(
                         color = SatinGoldDark
                     )
                     Text(
-                        text = "Sanctuary Match & Tracking",
+                        text = "Sanctuary Studio & Advisory",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -820,7 +683,7 @@ fun HomeSleepToolsCard(
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
-                        text = "NEW",
+                        text = "STUDIO",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.primary,
@@ -831,6 +694,83 @@ fun HomeSleepToolsCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Bespoke 3D Mattress Architect Strip
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .cushionPressEffect()
+                    .clickable(onClick = onOpenBespokeStudio)
+                    .testTag("home_bespoke_atelier_banner"),
+                shape = RoundedCornerShape(14.dp),
+                color = ForestGreenDark,
+                border = BorderStroke(1.dp, SatinGoldAccent.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF163E30)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = SatinGoldAccent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Bespoke Mattress Architect",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.5.sp,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = SatinGoldAccent
+                            ) {
+                                Text(
+                                    text = "3D ATELIER",
+                                    fontSize = 7.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = ForestGreenDark,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Custom pocket springs, latex, inch sizes & monogram",
+                            fontSize = 10.5.sp,
+                            color = Color.White.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = SatinGoldAccent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 4 Clean Quick Tool Tiles
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -838,7 +778,7 @@ fun HomeSleepToolsCard(
                 // Sleep Firmness Quiz Tile
                 SleepToolTile(
                     title = "Sleep Quiz",
-                    subtitle = "Find Firmness",
+                    subtitle = "Firmness",
                     badge = "3-STEP",
                     icon = Icons.Default.Bedtime,
                     badgeColor = SatinGoldAccent,
@@ -850,8 +790,8 @@ fun HomeSleepToolsCard(
                 // Side-by-Side Mattress Comparison Tile
                 SleepToolTile(
                     title = "Compare",
-                    subtitle = "Specs & Trial",
-                    badge = "MATRIX",
+                    subtitle = "Matrix",
+                    badge = "SPECS",
                     icon = Icons.AutoMirrored.Filled.CompareArrows,
                     badgeColor = ForestGreenContainer,
                     textColor = ForestGreenPrimary,
@@ -859,16 +799,30 @@ fun HomeSleepToolsCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                // White Glove Order Tracking Tile
+                // Order Tracking Tile
                 SleepToolTile(
                     title = "Tracking",
-                    subtitle = "Live Stepper",
-                    badge = "STATUS",
+                    subtitle = "Status",
+                    badge = "LIVE",
                     icon = Icons.Default.LocalShipping,
                     badgeColor = SatinGoldContainer,
                     textColor = SatinGoldDark,
                     onClick = onOpenOrderTracking,
                     modifier = Modifier.weight(1f)
+                )
+
+                // DreamCare AI Concierge Tile
+                SleepToolTile(
+                    title = "Concierge",
+                    subtitle = "AI Assist",
+                    badge = "SMART",
+                    icon = Icons.Default.SmartToy,
+                    badgeColor = ForestGreenPrimary,
+                    textColor = Color.White,
+                    onClick = onOpenAiConcierge,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("home_ai_concierge_banner")
                 )
             }
         }
@@ -889,13 +843,13 @@ private fun SleepToolTile(
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = modifier
             .cushionPressEffect(pressedScale = 0.96f)
             .clickable(onClick = onClick)
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Surface(
@@ -904,10 +858,10 @@ private fun SleepToolTile(
             ) {
                 Text(
                     text = badge,
-                    fontSize = 8.5.sp,
+                    fontSize = 8.sp,
                     fontWeight = FontWeight.Black,
                     color = textColor,
-                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                 )
             }
 
@@ -917,14 +871,14 @@ private fun SleepToolTile(
                 imageVector = icon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
 
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = title,
-                fontSize = 11.5.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1
@@ -932,88 +886,9 @@ private fun SleepToolTile(
 
             Text(
                 text = subtitle,
-                fontSize = 9.sp,
+                fontSize = 8.5.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
-            )
-        }
-    }
-}
-
-@Composable
-private fun HomeBespokeAtelierBanner(onOpenBespokeStudio: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .cushionPressEffect()
-            .clickable(onClick = onOpenBespokeStudio)
-            .testTag("home_bespoke_atelier_banner"),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = ForestGreenDark),
-        border = BorderStroke(1.dp, SatinGoldAccent.copy(alpha = 0.6f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF163E30)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = null,
-                    tint = SatinGoldAccent,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Bespoke Mattress Architect",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = SatinGoldAccent
-                    ) {
-                        Text(
-                            text = "3D ATELIER",
-                            fontSize = 8.sp,
-                            fontWeight = FontWeight.Black,
-                            color = ForestGreenDark,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Craft your mattress from the inside out: Pocket springs, latex, custom inch sizes & embroidered monogram.",
-                    fontSize = 11.sp,
-                    color = Color.White.copy(alpha = 0.8f),
-                    lineHeight = 15.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = SatinGoldAccent,
-                modifier = Modifier.size(22.dp)
             )
         }
     }

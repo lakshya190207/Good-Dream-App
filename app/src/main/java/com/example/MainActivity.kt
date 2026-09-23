@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.outlined.CloudOff
@@ -102,6 +104,14 @@ class MainActivity : ComponentActivity(), PaymentResultWithDataListener {
     } else if (!rawOrderId.isNullOrBlank()) {
       Timber.w("Rejected invalid or malformed order ID from deep link intent: %s", rawOrderId)
     }
+
+    val rawChatId = intent?.getStringExtra(NotificationHelper.EXTRA_CHAT_ID)?.trim()
+    if (!rawChatId.isNullOrBlank() && rawChatId.length <= 64 && rawChatId.matches(Regex("^[A-Za-z0-9\\-_]+$"))) {
+      Timber.i("MainActivity opened via direct message notification for chat: %s", rawChatId)
+      viewModel.openCustomerSupportChatWithSessionId(rawChatId)
+    } else if (!rawChatId.isNullOrBlank()) {
+      Timber.w("Rejected invalid or malformed chat ID from intent: %s", rawChatId)
+    }
   }
 }
 
@@ -119,6 +129,24 @@ fun GoodDreamApp(
     val context = LocalContext.current
     val activity = context as? ComponentActivity
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // Hardcore Security: Screen Capture & Recent Tasks Switcher Thumbnail Shielding
+    // Automatically applies FLAG_SECURE whenever the administrative CRM Studio is active
+    // to block screenshot capturing and prevent the Android OS from caching task switcher
+    // thumbnails containing customer PII (phone numbers, delivery addresses, order spend).
+    DisposableEffect(uiState.activePage) {
+        val window = activity?.window
+        val isSensitiveAdminScreen = uiState.activePage == ActivePage.ADMIN_PANEL
+        if (isSensitiveAdminScreen) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -164,6 +192,9 @@ fun GoodDreamApp(
                 viewModel.closeActivePage()
                 viewModel.selectTab(MainTab.HOME)
             }
+            uiState.activePage == ActivePage.CUSTOMER_SUPPORT_CHAT -> {
+                viewModel.closeCustomerSupportChat()
+            }
             uiState.activePage != ActivePage.NONE -> {
                 viewModel.closeActivePage()
             }
@@ -205,10 +236,10 @@ fun GoodDreamApp(
     }
 
     val supportPhone = uiState.appConfig.contactInfo.phone.ifBlank {
-        uiState.appConfigs["support_phone"] ?: "+91 80 4123 9999"
+        uiState.appConfigs["support_phone"] ?: "+91 7014983696"
     }
     val supportEmail = uiState.appConfig.contactInfo.email.ifBlank {
-        uiState.appConfigs["support_email"] ?: "care@gooddreamhomedecor.com"
+        uiState.appConfigs["support_email"] ?: "gooddreamshomedecor@gmail.com"
     }
 
     ModalNavigationDrawer(
@@ -239,18 +270,56 @@ fun GoodDreamApp(
                 .testTag("app_scaffold"),
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
-                // Top App Bar is visible on all primary tabs (PDP and dedicated pages have their own dedicated top bars)
-                if (uiState.selectedProduct == null && uiState.activePage == ActivePage.NONE) {
-                    GoodDreamTopAppBar(
-                        onMenuClick = {
-                            coroutineScope.launch { drawerState.open() }
-                        },
-                        onWishlistClick = { viewModel.toggleWishlistSheet(true) },
-                        onCartClick = { viewModel.openCartPage() },
-                        wishlistCount = uiState.wishlistIds.size,
-                        cartCount = uiState.totalCartItemsCount,
-                        isDarkMode = uiState.isDarkMode
-                    )
+                Column {
+                    // Top App Bar is visible on all primary tabs (PDP and dedicated pages have their own dedicated top bars)
+                    if (uiState.selectedProduct == null && uiState.activePage == ActivePage.NONE) {
+                        GoodDreamTopAppBar(
+                            onMenuClick = {
+                                coroutineScope.launch { drawerState.open() }
+                            },
+                            onWishlistClick = { viewModel.toggleWishlistSheet(true) },
+                            onCartClick = { viewModel.openCartPage() },
+                            wishlistCount = uiState.wishlistIds.size,
+                            cartCount = uiState.totalCartItemsCount,
+                            isDarkMode = uiState.isDarkMode
+                        )
+                    }
+
+                    // Flagship Luxury Offline Mode Status Banner
+                    AnimatedVisibility(
+                        visible = !uiState.isOnline,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Surface(
+                            color = ForestGreenDark,
+                            contentColor = SatinGoldAccent,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.CloudOff,
+                                    contentDescription = null,
+                                    tint = SatinGoldAccent,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Offline Sanctuary Mode • Local Catalog Active",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.5.sp,
+                                    color = SatinGoldAccent
+                                )
+                            }
+                        }
+                    }
                 }
             },
             bottomBar = {
@@ -290,7 +359,39 @@ fun GoodDreamApp(
                 }
             },
             snackbarHost = {
-                SnackbarHost(hostState = snackbarHostState)
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) { snackbarData ->
+                    Surface(
+                        shape = RoundedCornerShape(24.dp),
+                        color = ForestGreenDark,
+                        border = BorderStroke(1.dp, SatinGoldAccent.copy(alpha = 0.8f)),
+                        shadowElevation = 6.dp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = SatinGoldAccent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = snackbarData.visuals.message,
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
             }
         ) { innerPadding ->
             Box(
@@ -664,6 +765,9 @@ fun GoodDreamApp(
                                             orders = uiState.orders,
                                             inquiries = uiState.inquiries,
                                             crmUsers = uiState.crmUsers,
+                                            supportSessions = uiState.allSupportSessions,
+                                            selectedChatSession = uiState.selectedAdminChatSession,
+                                            adminChatMessages = uiState.adminChatMessages,
                                             onSaveProduct = { viewModel.addOrUpdateProduct(it) },
                                             onDeleteProduct = { viewModel.deleteProduct(it) },
                                             onResetCatalog = { viewModel.resetCatalog() },
@@ -671,6 +775,13 @@ fun GoodDreamApp(
                                             onUpdateInquiryStatus = { id, status -> viewModel.updateInquiryStatus(id, status) },
                                             onSaveUser = { viewModel.saveCrmUser(it.email, it.name, it.phone, it.notes) },
                                             onDeleteUser = { viewModel.deleteCrmUser(it) },
+                                            onSelectChatSession = { viewModel.selectAdminChatThread(it) },
+                                            onSendAdminReply = { chatId, text -> viewModel.sendAdminSupportReply(chatId, text) },
+                                            onSendDirectMessage = { email, name, text, orderRef ->
+                                                viewModel.sendAdminDirectMessageToUser(email, name, text, orderRef)
+                                            },
+                                            onResolveChat = { viewModel.resolveSupportChat(it) },
+                                            onLoadSupportDesk = { viewModel.loadAdminSupportDesk() },
                                             onLogoutAdmin = { viewModel.logoutAdmin() },
                                             onClose = { viewModel.closeActivePage() }
                                         )
@@ -688,6 +799,9 @@ fun GoodDreamApp(
                                         },
                                         onLoginWithPasscode = { email, passcode ->
                                             viewModel.loginWithPasscode(email, passcode)
+                                        },
+                                        onRegisterDirect = { name, email, passcode ->
+                                            viewModel.registerUserDirectly(name, email, passcode)
                                         },
                                         onLoginSuccess = { viewModel.onLoginCompleted() },
                                         onBack = { viewModel.closeActivePage() }
@@ -730,6 +844,13 @@ fun GoodDreamApp(
                                         loggedInUserEmail = uiState.loggedInUserEmail,
                                         isAdmin = uiState.isAdminAuthenticated,
                                         supportPhone = supportPhone,
+                                        onOpenLiveChat = { orderRef ->
+                                            viewModel.closeActivePage()
+                                            viewModel.openCustomerSupportChat(
+                                                orderRef = orderRef,
+                                                initialMessage = "Hello, I need assistance with my Order #$orderRef."
+                                            )
+                                        },
                                         onOpenLogin = { viewModel.openPage(ActivePage.USER_LOGIN) },
                                         onClose = { viewModel.closeActivePage() }
                                     )
@@ -750,11 +871,13 @@ fun GoodDreamApp(
                                 ActivePage.PRIVACY_POLICY,
                                 ActivePage.TERMS_OF_SERVICE,
                                 ActivePage.COOKIE_POLICY,
-                                ActivePage.REFUND_POLICY -> {
+                                ActivePage.REFUND_POLICY,
+                                ActivePage.SHIPPING_POLICY -> {
                                     val initialTab = when (destination.page) {
                                         ActivePage.PRIVACY_POLICY -> 1
                                         ActivePage.COOKIE_POLICY -> 2
                                         ActivePage.REFUND_POLICY -> 3
+                                        ActivePage.SHIPPING_POLICY -> 4
                                         else -> 0
                                     }
                                     LegalPoliciesModal(
@@ -769,7 +892,22 @@ fun GoodDreamApp(
                                         isLoading = uiState.isChatLoading,
                                         onSendMessage = { prompt -> viewModel.sendChatMessage(prompt) },
                                         onClearChat = { viewModel.clearChat() },
+                                        onOpenLiveSupport = {
+                                            viewModel.closeActivePage()
+                                            viewModel.openCustomerSupportChat()
+                                        },
                                         onClose = { viewModel.closeActivePage() }
+                                    )
+                                }
+
+                                ActivePage.CUSTOMER_SUPPORT_CHAT -> {
+                                    CustomerSupportChatModal(
+                                        session = uiState.activeSupportChatSession,
+                                        messages = uiState.supportChatMessages,
+                                        isSending = uiState.isSupportChatSending,
+                                        onSendMessage = { text -> viewModel.sendCustomerSupportMessage(text) },
+                                        onClose = { viewModel.closeCustomerSupportChat() },
+                                        supportPhone = supportPhone
                                     )
                                 }
 

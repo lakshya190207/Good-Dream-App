@@ -248,22 +248,113 @@
             text-decoration: underline;
         }
 
+        /* Unified Nav */
+        nav {
+            background-color: #071A13;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--satin-gold);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .nav-brand {
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+        }
+
+        .nav-brand .title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: 2px;
+        }
+
+        .nav-brand .subtitle {
+            font-size: 0.7rem;
+            color: var(--satin-gold);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            color: #FFFFFF;
+            text-decoration: none;
+            font-size: 0.86rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--satin-gold);
+        }
+
         footer {
+            background-color: #071A13;
             text-align: center;
-            padding: 2rem 1rem;
-            color: var(--text-muted);
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.65);
             font-size: 0.8rem;
-            border-top: 1px solid var(--border-color);
+            border-top: 2px solid var(--satin-gold);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        .footer-links a {
+            color: var(--satin-gold-light);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: #FFFFFF;
         }
 
         .legal-note {
             font-size: 0.78rem;
-            color: #7A8981;
+            color: rgba(255, 255, 255, 0.55);
             margin-top: 0.75rem;
         }
     </style>
 </head>
 <body>
+
+    <!-- Navigation -->
+    <nav>
+        <a href="/" class="nav-brand">
+            <span class="title">Good Dream</span>
+            <span class="subtitle">Sanctuary Atelier</span>
+        </a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/#catalog">Mattresses</a>
+            <a href="/terms.html">Terms</a>
+            <a href="/privacy-policy.html">Privacy</a>
+            <a href="/refund-policy.html">Refund & Cancellation</a>
+            <a href="/shipping-policy.html">Shipping</a>
+            <a href="/contact.html">Contact Us</a>
+        </div>
+    </nav>
 
     <header>
         <div class="brand-eyebrow">Good Dream Home Decor & SpringHaven Mattress</div>
@@ -339,16 +430,27 @@
             <div class="direct-email-card">
                 <p style="margin-bottom: 0.3rem; font-weight: 600; color: var(--forest-green);">Direct Privacy Officer Dispatch</p>
                 <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">You can also submit your request directly via email to our Data Protection Officer:</p>
-                <a href="mailto:Lakshya190207@gmail.com?subject=Account%20and%20Data%20Deletion%20Request%20-%20Good%20Dream">Lakshya190207@gmail.com</a>
+                <a href="mailto:gooddreamshomedecor@gmail.com?subject=Account%20and%20Data%20Deletion%20Request%20-%20Good%20Dream">gooddreamshomedecor@gmail.com</a>
             </div>
         </div>
     </main>
 
     <footer>
-        <p>© 2026 Good Dream Home Decor Pvt. Ltd. & SpringHaven Mattress Sanctuary. All Rights Reserved.</p>
+        <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/#catalog">Catalog</a>
+            <a href="/terms.html">Terms & Conditions</a>
+            <a href="/privacy-policy.html">Privacy Policy</a>
+            <a href="/refund-policy.html">Refund & Cancellation</a>
+            <a href="/shipping-policy.html">Shipping Policy</a>
+            <a href="/contact.html">Contact Us</a>
+            <a href="/delete-account.html">Data Deletion</a>
+        </div>
+        <p>© 2026 GOOD DREAMS HOME DECOR PRIVATE LIMITED & SpringHaven Mattress Sanctuary. All Rights Reserved.</p>
         <p class="legal-note">
-            Registered Office: No. 44, Good Dream Pavilion, Interior Boulevard, Indiranagar, Bengaluru, Karnataka 560038<br>
-            All submitted deletion requests are processed in compliance with the Google Play Store User Data Policy and statutory data retention timelines within 30 business days.
+            Registered Office: D-4, Vijay Vihar Colony, Naya Kheda, Amba Bari, Jaipur, Rajasthan - 302039, India<br>
+            Marketed by: H P PRODUCTS, P.No. 4, Badharna, Bajrang Vihar 5, Jaipur, Rajasthan - 302013<br>
+            All submitted deletion requests are processed in compliance with the Google Play Store User Data Policy and DPDP Act within statutory timelines.
         </p>
     </footer>
 
@@ -375,7 +477,7 @@
                 `Submitted via Good Dream Official Web Portal.`
             );
 
-            const mailtoUrl = `mailto:Lakshya190207@gmail.com?subject=${subject}&body=${body}`;
+            const mailtoUrl = `mailto:gooddreamshomedecor@gmail.com?subject=${subject}&body=${body}`;
             
             alert(`Thank you, ${name}. Your deletion request is ready for transmission to our Data Protection Officer. We will launch your email client now to securely record the dispatch.`);
             window.location.href = mailtoUrl;

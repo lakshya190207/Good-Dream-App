@@ -78,7 +78,7 @@ class RazorpayPaymentUnitTest {
         val options = RazorpayPaymentHelper.buildPaymentOptions(draft, "Grand Sovereign Mattress (1x)")
 
         assertEquals(2000000L, options.getLong("amount"))
-        assertEquals("20% White-Glove Booking Advance", options.getString("description"))
+        assertEquals("20% Delivery Booking Advance", options.getString("description"))
     }
 
     @Test
@@ -106,5 +106,12 @@ class RazorpayPaymentUnitTest {
         assertEquals("concierge@gooddream.in", prefill.getString("email"))
         assertEquals("9876543210", prefill.getString("contact"))
         assertEquals("Sanctuary Member", prefill.getString("name"))
+    }
+
+    @Test
+    fun testEffectiveKeyIdResolution() {
+        val key = RazorpayPaymentHelper.getEffectiveKeyId()
+        assertNotNull(key)
+        assertTrue("Key must start with rzp_", key.startsWith("rzp_"))
     }
 }

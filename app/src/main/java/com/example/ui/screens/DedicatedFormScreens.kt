@@ -189,7 +189,7 @@ fun CustomInquiryScreen(
                         Text("Category & Specifications", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Text("Select Target Category:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(categories) { cat ->
+                            items(categories, key = { it.id }) { cat ->
                                 FilterChip(
                                     selected = selectedCategory == cat.name,
                                     onClick = { selectedCategory = cat.name },
@@ -286,7 +286,7 @@ fun RepairRequestScreen(
         if (isSubmitted) {
             SubmissionSuccessView(
                 title = "Repair Request Scheduled!",
-                message = "Your request has been logged. A certified Good Dream white-glove technician will visit your location to inspect the mattress and coordinate zero-hassle restoration under your 25-Year Guarantee.",
+                message = "Your request has been logged. A certified Good Dream service technician will visit your location to inspect the mattress and coordinate zero-hassle restoration under your 25-Year Guarantee.",
                 onAction = onBack,
                 actionText = "Done"
             )
@@ -329,7 +329,7 @@ fun RepairRequestScreen(
                         Text("Type of Restoration Needed:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         val issues = listOf("Coil / Spring Sagging", "Edge Border Deformation", "Cover Stitching Repair", "Core Foam Replacement", "General Inspection")
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(issues) { iss ->
+                            items(issues, key = { it }) { iss ->
                                 FilterChip(selected = issueType == iss, onClick = { issueType = iss }, label = { Text(iss, fontSize = 11.sp) })
                             }
                         }
@@ -430,7 +430,7 @@ fun ComplaintScreen(
                         Text("Grievance Category", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         val categories = listOf("Delivery / Dispatch Delay", "Wrong Dimension Received", "Showroom Experience", "Packaging / Transit Damage", "Warranty Dispute")
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(categories) { cat ->
+                            items(categories, key = { it }) { cat ->
                                 FilterChip(selected = complaintCategory == cat, onClick = { complaintCategory = cat }, label = { Text(cat, fontSize = 11.sp) })
                             }
                         }
@@ -569,9 +569,9 @@ fun FeedbackScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("Highlight Tag:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        val tags = listOf("Cloud Comfort", "Back Pain Relief", "White-Glove Service", "Cooling Technology", "True 25-Yr Durability")
+                        val tags = listOf("Cloud Comfort", "Back Pain Relief", "Express Delivery", "Cooling Technology", "True 25-Yr Durability")
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items(tags) { t ->
+                            items(tags, key = { it }) { t ->
                                 FilterChip(selected = selectedTag == t, onClick = { selectedTag = t }, label = { Text(t, fontSize = 11.sp) })
                             }
                         }

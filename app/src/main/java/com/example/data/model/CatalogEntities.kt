@@ -1,8 +1,10 @@
 package com.example.data.model
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+@Immutable
 @Entity(tableName = "categories")
 data class CategoryEntity(
     @PrimaryKey val id: String,
@@ -14,6 +16,7 @@ data class CategoryEntity(
     val isActive: Boolean = true
 )
 
+@Immutable
 @Entity(tableName = "products")
 data class ProductEntity(
     @PrimaryKey val id: String,
@@ -63,6 +66,7 @@ data class WishlistItemEntity(
     val addedAt: Long = System.currentTimeMillis()
 )
 
+@Immutable
 @Entity(tableName = "inquiries")
 data class InquiryEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -83,6 +87,7 @@ data class AppConfigEntity(
     val configValue: String
 )
 
+@Immutable
 @Entity(tableName = "orders")
 data class OrderEntity(
     @PrimaryKey val id: String,
@@ -103,6 +108,7 @@ data class OrderEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Immutable
 data class PendingPaymentOrderDraft(
     val customerName: String,
     val customerPhone: String,
@@ -119,4 +125,19 @@ data class PendingPaymentOrderDraft(
     val isCod: Boolean = false,
     val codAdvanceAmount: Double = 0.0,
     val codBalanceAmount: Double = 0.0
+)
+
+@Immutable
+@Entity(tableName = "users")
+data class UserEntity(
+    @PrimaryKey
+    val email: String,
+    val name: String,
+    val phone: String = "",
+    val userType: String = "REGISTERED_VIP",
+    val hashedPasscode: String = "",
+    val notes: String = "",
+    val addressesJson: String = "[]",
+    val isCurrentSession: Boolean = true,
+    val createdAtEpochMs: Long = System.currentTimeMillis()
 )

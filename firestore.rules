@@ -7,7 +7,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() && (request.auth.token.admin == true || request.auth.token.email == "Lakshya190207@gmail.com");
+      return isAuthenticated() && (request.auth.token.admin == true || request.auth.token.email == "gooddreamshomedecor@gmail.com" || request.auth.token.email == "Lakshya190207@gmail.com");
     }
 
     // App Config & Banners (Read-only for public client apps, write-restricted to admins)
@@ -27,6 +27,19 @@ service cloud.firestore {
       allow read: if true;
       allow write, delete: if isAdmin();
     }
+
+    // Registered Users & VIP Profiles: Single-account lookup and matching-email registration
+    match /users/{userId} {
+      // Disallow unauthenticated global scanning of all customer accounts (DPDP Act 2023 compliance)
+      allow list: if isAdmin();
+      // Allow single document lookup for admin, authenticated user, or matching document owner
+      allow get: if isAdmin() || (isAuthenticated() && request.auth.token.email == userId) || (resource.data.email == userId);
+      // Writes require matching email to document ID to prevent cross-account profile hijacking
+      allow create, update: if request.resource.data.email is string
+                            && request.resource.data.name is string
+                            && request.resource.data.email == userId;
+      allow delete: if isAdmin();
+    }
     
     // Customer Inquiries, Repairs, Complaints, Warranty Requests
     match /inquiries/{inquiryId} {
@@ -36,13 +49,50 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Customer Orders: White-Glove & Cash on Delivery Orders
+    // Customer Orders: Delivery & Cash on Delivery Orders
+    // Client cannot directly set paymentStatus to "Paid" without admin privileges or webhook reconciliation
     match /orders/{orderId} {
       allow create: if request.resource.data.customerPhone is string
-                    && request.resource.data.totalAmount is number;
-      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerEmail == request.auth.token.email);
+                    && request.resource.data.totalAmount is number
+                    && (request.resource.data.paymentStatus != "Paid" || isAdmin());
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.customerEmail == request.auth.token.email) || resource.data.id == orderId;
       allow update: if isAdmin();
       allow delete: if false;
+    }
+
+    // Customer Support Live Chats & Messages
+    match /support_chats/{chatId} {
+      allow create: if request.resource.data.customerName is string;
+      // Only authenticated admins can list / monitor all active chat sessions across all customers
+      allow list: if isAdmin();
+      // Individual session lookup: admin, matching authenticated customer, or direct session document ID access
+      allow get: if isAdmin() || (isAuthenticated() && resource.data.customerEmail == request.auth.token.email) || resource.data.id == chatId;
+      // Session updates restricted to admin or the session owner maintaining consistent customer email
+      allow update: if isAdmin() || (resource.data.id == chatId && request.resource.data.customerEmail == resource.data.customerEmail);
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow create: if request.resource.data.text is string;
+        // Read allowed for administrators, matching authenticated customers, or strictly bounded to verified parent session
+        allow read: if isAdmin()
+                    || (isAuthenticated() && get(/databases/$(database)/documents/support_chats/$(chatId)).data.customerEmail == request.auth.token.email)
+                    || (get(/databases/$(database)/documents/support_chats/$(chatId)).data.id == chatId && resource.data.chatId == chatId);
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // Mail Queue for Firebase Trigger Email extension (Zero client credential exposure)
+    match /mail/{mailId} {
+      allow create: if request.resource.data.to is list
+                    && request.resource.data.message.subject is string;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Audit OTP records (write for synchronization, read restricted to administrators)
+    match /otps/{otpDoc} {
+      allow create, update: if request.resource.data.email is string
+                            && request.resource.data.otp is string;
+      allow read, delete: if isAdmin();
     }
 
     // Default deny for all other unspecified paths

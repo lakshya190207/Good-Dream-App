@@ -1,13 +1,20 @@
 package com.example.data.remote
 
 import com.example.data.model.CategoryEntity
+import com.example.data.model.CrmUserRecord
+import com.example.data.model.CrmUserType
 import com.example.data.model.InquiryEntity
 import com.example.data.model.OrderEntity
 import com.example.data.model.ProductEntity
+import com.example.data.model.SupportChatMessage
+import com.example.data.model.SupportChatSession
+import com.example.data.model.SupportSenderType
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -31,6 +38,9 @@ class FirestoreCatalogService {
         const val COLLECTION_PRODUCTS = "products"
         const val COLLECTION_ORDERS = "orders"
         const val COLLECTION_INQUIRIES = "inquiries"
+        const val COLLECTION_SUPPORT_CHATS = "support_chats"
+        const val COLLECTION_USERS = "users"
+        const val SUBCOLLECTION_MESSAGES = "messages"
         @Volatile private var isSettingsConfigured = false
     }
 
@@ -387,6 +397,275 @@ class FirestoreCatalogService {
         } catch (e: Exception) {
             Timber.tag(TAG).w("Notice: Could not sync OTP to Firestore: ${e.message}")
             false
+        }
+    }
+
+    /**
+     * Sends a message into a customer support chat session.
+     * Also updates the parent session with latest message, timestamp, and metadata.
+     */
+    suspend fun sendSupportMessage(
+        session: SupportChatSession,
+        message: SupportChatMessage
+    ): Boolean = withContext(Dispatchers.IO) {
+        val firestore = getFirestoreInstance() ?: return@withContext false
+        try {
+            val sessionRef = firestore.collection(COLLECTION_SUPPORT_CHATS).document(session.id)
+            val sessionData = mapOf(
+                "id" to session.id,
+                "customerName" to session.customerName,
+                "customerEmail" to session.customerEmail,
+                "customerPhone" to session.customerPhone,
+                "lastMessage" to message.text,
+                "lastMessageTimestamp" to message.timestamp,
+                "status" to session.status,
+                "orderReference" to (session.orderReference ?: message.orderReference),
+                "createdAt" to session.createdAt
+            )
+            sessionRef.set(sessionData, SetOptions.merge()).awaitTask()
+
+            val msgData = mapOf(
+                "id" to message.id,
+                "chatId" to session.id,
+                "senderType" to message.senderType.name,
+                "senderName" to message.senderName,
+                "text" to message.text,
+                "timestamp" to message.timestamp,
+                "orderReference" to message.orderReference
+            )
+            sessionRef.collection(SUBCOLLECTION_MESSAGES).document(message.id).set(msgData).awaitTask()
+            Timber.tag(TAG).i("Sent support message ${message.id} for session ${session.id}")
+            true
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to send support message: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Observes real-time messages for a specific customer support chat session.
+     */
+    fun observeSupportMessages(
+        chatId: String,
+        onUpdate: (List<SupportChatMessage>) -> Unit
+    ): ListenerRegistration? {
+        val firestore = getFirestoreInstance() ?: return null
+        return try {
+            firestore.collection(COLLECTION_SUPPORT_CHATS)
+                .document(chatId)
+                .collection(SUBCOLLECTION_MESSAGES)
+                .orderBy("timestamp", Query.Direction.ASCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Timber.tag(TAG).w("Support messages listener error: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val messages = snapshot.documents.mapNotNull { doc ->
+                            documentToSupportChatMessage(doc)
+                        }
+                        onUpdate(messages)
+                    }
+                }
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Error starting support messages listener: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Observes all active support sessions for the Admin Support Desk.
+     */
+    fun observeAllSupportSessions(
+        onUpdate: (List<SupportChatSession>) -> Unit
+    ): ListenerRegistration? {
+        val firestore = getFirestoreInstance() ?: return null
+        return try {
+            firestore.collection(COLLECTION_SUPPORT_CHATS)
+                .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        Timber.tag(TAG).w("Support sessions listener error: ${error.message}")
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val sessions = snapshot.documents.mapNotNull { doc ->
+                            documentToSupportChatSession(doc)
+                        }
+                        onUpdate(sessions)
+                    }
+                }
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Error starting support sessions listener: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Updates the status of a support chat session (e.g. "OPEN", "IN_PROGRESS", "RESOLVED").
+     */
+    suspend fun updateSupportChatStatus(chatId: String, newStatus: String): Boolean = withContext(Dispatchers.IO) {
+        val firestore = getFirestoreInstance() ?: return@withContext false
+        try {
+            firestore.collection(COLLECTION_SUPPORT_CHATS)
+                .document(chatId)
+                .update("status", newStatus)
+                .awaitTask()
+            Timber.tag(TAG).i("Updated chat session $chatId status to $newStatus")
+            true
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to update chat status: ${e.message}")
+            false
+        }
+    }
+
+    private fun documentToSupportChatMessage(doc: DocumentSnapshot): SupportChatMessage? {
+        val data = doc.data ?: return null
+        val id = doc.id.ifBlank { data["id"] as? String ?: return null }
+        val senderTypeStr = data["senderType"] as? String ?: SupportSenderType.CUSTOMER.name
+        val senderType = try {
+            SupportSenderType.valueOf(senderTypeStr)
+        } catch (e: Exception) {
+            SupportSenderType.CUSTOMER
+        }
+        return SupportChatMessage(
+            id = id,
+            chatId = data["chatId"] as? String ?: "",
+            senderType = senderType,
+            senderName = data["senderName"] as? String ?: "",
+            text = data["text"] as? String ?: "",
+            timestamp = (data["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+            orderReference = data["orderReference"] as? String
+        )
+    }
+
+    private fun documentToSupportChatSession(doc: DocumentSnapshot): SupportChatSession? {
+        val data = doc.data ?: return null
+        val id = doc.id.ifBlank { data["id"] as? String ?: return null }
+        return SupportChatSession(
+            id = id,
+            customerName = data["customerName"] as? String ?: "Guest Customer",
+            customerEmail = data["customerEmail"] as? String ?: "",
+            customerPhone = data["customerPhone"] as? String ?: "",
+            lastMessage = data["lastMessage"] as? String ?: "",
+            lastMessageTimestamp = (data["lastMessageTimestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+            status = data["status"] as? String ?: "OPEN",
+            unreadByCustomer = (data["unreadByCustomer"] as? Number)?.toInt() ?: 0,
+            unreadByAdmin = (data["unreadByAdmin"] as? Number)?.toInt() ?: 0,
+            orderReference = data["orderReference"] as? String,
+            createdAt = (data["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
+        )
+    }
+
+    /**
+     * Persists or updates a user profile in Firestore collection "users".
+     */
+    suspend fun saveRemoteUser(
+        email: String,
+        name: String,
+        phone: String = "",
+        userType: String = "REGISTERED_VIP",
+        notes: String = "",
+        fcmToken: String? = null
+    ): Boolean = withContext(Dispatchers.IO) {
+        val firestore = getFirestoreInstance() ?: return@withContext false
+        try {
+            val cleanEmail = email.trim().lowercase()
+            val userMap = mutableMapOf<String, Any>(
+                "email" to cleanEmail,
+                "name" to name.trim(),
+                "phone" to phone.trim(),
+                "userType" to userType,
+                "notes" to notes.trim(),
+                "updatedAt" to System.currentTimeMillis()
+            )
+            if (!fcmToken.isNullOrBlank()) {
+                userMap["fcmToken"] = fcmToken
+            }
+            firestore.collection(COLLECTION_USERS)
+                .document(cleanEmail)
+                .set(userMap, SetOptions.merge())
+                .awaitTask()
+            Timber.tag(TAG).i("User $cleanEmail saved to Cloud Firestore users collection")
+            true
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to save user to Cloud Firestore: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Fetches all registered users from Firestore collection "users".
+     */
+    suspend fun fetchRemoteUsers(): List<CrmUserRecord> = withContext(Dispatchers.IO) {
+        val firestore = getFirestoreInstance() ?: return@withContext emptyList()
+        try {
+            val snapshot = firestore.collection(COLLECTION_USERS)
+                .get()
+                .awaitTask()
+
+            val users = snapshot.documents.mapNotNull { doc ->
+                val email = doc.getString("email") ?: doc.id
+                val name = doc.getString("name") ?: "Valued Member"
+                val phone = doc.getString("phone") ?: ""
+                val notes = doc.getString("notes") ?: ""
+                val typeStr = doc.getString("userType") ?: "REGISTERED_VIP"
+                val userType = try {
+                    CrmUserType.valueOf(typeStr)
+                } catch (_: Exception) {
+                    CrmUserType.REGISTERED_VIP
+                }
+                CrmUserRecord(
+                    id = email,
+                    name = name,
+                    email = email,
+                    phone = phone,
+                    userType = userType,
+                    notes = notes
+                )
+            }
+            Timber.tag(TAG).i("Fetched ${users.size} users from Cloud Firestore")
+            users
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to fetch remote users from Cloud Firestore: ${e.message}")
+            emptyList()
+        }
+    }
+
+    /**
+     * Safely fetches a single user profile by email from Firestore without exposing other customers' records.
+     */
+    suspend fun fetchRemoteUserByEmail(email: String): CrmUserRecord? = withContext(Dispatchers.IO) {
+        val firestore = getFirestoreInstance() ?: return@withContext null
+        try {
+            val cleanEmail = email.trim().lowercase()
+            if (cleanEmail.isBlank()) return@withContext null
+            val doc = firestore.collection(COLLECTION_USERS)
+                .document(cleanEmail)
+                .get()
+                .awaitTask()
+
+            if (!doc.exists()) return@withContext null
+            val name = doc.getString("name") ?: "Valued Member"
+            val phone = doc.getString("phone") ?: ""
+            val notes = doc.getString("notes") ?: ""
+            val typeStr = doc.getString("userType") ?: "REGISTERED_VIP"
+            val userType = try {
+                CrmUserType.valueOf(typeStr)
+            } catch (_: Exception) {
+                CrmUserType.REGISTERED_VIP
+            }
+            CrmUserRecord(
+                id = cleanEmail,
+                name = name,
+                email = cleanEmail,
+                phone = phone,
+                userType = userType,
+                notes = notes
+            )
+        } catch (e: Exception) {
+            Timber.tag(TAG).w("Failed to fetch remote user $email from Cloud Firestore: ${e.message}")
+            null
         }
     }
 }

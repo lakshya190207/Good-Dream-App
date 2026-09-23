@@ -170,7 +170,7 @@ fun LuxuryAddToCartNotification(
                         )
 
                         Text(
-                            text = "• 100-Night Trial",
+                            text = "• 25-Year Warranty",
                             style = MaterialTheme.typography.labelSmall,
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 10.5.sp

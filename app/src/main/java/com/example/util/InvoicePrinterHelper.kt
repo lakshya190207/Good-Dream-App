@@ -25,10 +25,10 @@ object InvoicePrinterHelper {
     fun printOrderInvoice(
         context: Context,
         order: OrderEntity,
-        companyName: String = "Good Dream Home Decor Private Limited",
-        supportPhone: String = "+91 80 4123 9999",
-        supportEmail: String = "care@gooddreamhomedecor.com",
-        storeAddress: String = "Sanctuary Flagship Experience Center, Indiranagar, Bengaluru, Karnataka 560038"
+        companyName: String = "GOOD DREAMS HOME DECOR PRIVATE LIMITED",
+        supportPhone: String = "+91 7014983696",
+        supportEmail: String = "gooddreamshomedecor@gmail.com",
+        storeAddress: String = "D-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan\nMarketed by: H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013"
     ) {
         try {
             val printManager = context.getSystemService(Context.PRINT_SERVICE) as? PrintManager
@@ -39,6 +39,8 @@ object InvoicePrinterHelper {
 
             val webView = WebView(context)
             webView.settings.javaScriptEnabled = false
+            webView.settings.allowFileAccess = false
+            webView.settings.allowContentAccess = false
 
             val htmlContent = generateInvoiceHtml(order, companyName, supportPhone, supportEmail, storeAddress)
 
@@ -67,6 +69,16 @@ object InvoicePrinterHelper {
         }
     }
 
+    private fun escapeHtml(input: String?): String {
+        if (input.isNullOrEmpty()) return ""
+        return input
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace("\"", "&quot;")
+            .replace("'", "&#39;")
+    }
+
     private fun generateInvoiceHtml(
         order: OrderEntity,
         companyName: String,
@@ -86,6 +98,23 @@ object InvoicePrinterHelper {
         val totalGst = order.totalAmount - subtotalBeforeTax
         val cgst = totalGst / 2.0
         val sgst = totalGst / 2.0
+
+        val safeCompanyName = escapeHtml(companyName)
+        val safeStoreAddress = escapeHtml(storeAddress).replace("\n", "<br>")
+        val safeSupportPhone = escapeHtml(supportPhone)
+        val safeSupportEmail = escapeHtml(supportEmail)
+        val safeCustomerName = escapeHtml(order.customerName)
+        val safeDeliveryAddress = escapeHtml(order.deliveryAddress)
+        val safeCity = escapeHtml(order.city)
+        val safeState = escapeHtml(order.state)
+        val safePincode = escapeHtml(order.pincode)
+        val safePhone = escapeHtml(order.customerPhone)
+        val safeEmail = escapeHtml(order.customerEmail)
+        val safeDeliverySlot = escapeHtml(order.deliverySlot)
+        val safeFloorElevator = escapeHtml(order.floorElevator)
+        val safeStatus = escapeHtml(order.status)
+        val safePaymentMethod = escapeHtml(order.paymentMethod)
+        val safeItemsSummary = escapeHtml(order.itemsSummary)
 
         return """
             <!DOCTYPE html>
@@ -207,11 +236,11 @@ object InvoicePrinterHelper {
                 <div class="header">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
-                            <h1 class="brand-title">$companyName</h1>
+                            <h1 class="brand-title">$safeCompanyName</h1>
                             <div class="tagline">Sanctuary Atelier & Master Craftsmen</div>
                             <div style="font-size: 11px; color: #4A5568; margin-top: 6px;">
-                                $storeAddress<br>
-                                GSTIN: 29AAACG8412K1Z8 • Phone: $supportPhone • Email: $supportEmail
+                                $safeStoreAddress<br>
+                                GSTIN: 29AAACG8412K1Z8 • Phone: $safeSupportPhone • Email: $safeSupportEmail
                             </div>
                         </div>
                         <div style="text-align: right;">
@@ -225,22 +254,22 @@ object InvoicePrinterHelper {
                 <div class="two-col">
                     <div class="col">
                         <div class="section-label">Billed & Shipped To:</div>
-                        <div style="font-weight: bold; font-size: 14px; color: #102E23;">${order.customerName}</div>
+                        <div style="font-weight: bold; font-size: 14px; color: #102E23;">$safeCustomerName</div>
                         <div style="color: #4A5568; margin-top: 4px;">
-                            ${order.deliveryAddress}<br>
-                            ${order.city}, ${order.state} - ${order.pincode}<br>
-                            Phone: ${order.customerPhone}<br>
-                            Email: ${order.customerEmail}
+                            $safeDeliveryAddress<br>
+                            $safeCity, $safeState - $safePincode<br>
+                            Phone: $safePhone<br>
+                            Email: $safeEmail
                         </div>
                     </div>
                     <div class="col" style="text-align: right;">
                         <div class="section-label">Fulfillment & Logistics:</div>
-                        <div style="font-weight: bold; color: #102E23;">White-Glove Fleet Delivery</div>
+                        <div style="font-weight: bold; color: #102E23;">Direct Fleet Delivery</div>
                         <div style="color: #4A5568; margin-top: 4px;">
-                            Slot: ${order.deliverySlot}<br>
-                            Access: ${order.floorElevator}<br>
-                            Status: <strong style="color: #102E23;">${order.status}</strong><br>
-                            Payment Mode: ${order.paymentMethod}
+                            Slot: $safeDeliverySlot<br>
+                            Access: $safeFloorElevator<br>
+                            Status: <strong style="color: #102E23;">$safeStatus</strong><br>
+                            Payment Mode: $safePaymentMethod
                         </div>
                     </div>
                 </div>
@@ -257,7 +286,7 @@ object InvoicePrinterHelper {
                     <tbody>
                         <tr>
                             <td>
-                                <strong style="color: #102E23;">${order.itemsSummary}</strong><br>
+                                <strong style="color: #102E23;">$safeItemsSummary</strong><br>
                                 <span style="font-size: 11px; color: #718096;">
                                     Artisan Handcrafted • European Zoned Pocket Coils • Zero VOC Certification
                                 </span>
@@ -283,7 +312,7 @@ object InvoicePrinterHelper {
                         <span>${currencyFormatter.format(sgst)}</span>
                     </div>
                     <div class="total-row">
-                        <span>White-Glove In-Room Setup:</span>
+                        <span>In-Room Setup:</span>
                         <span style="color: #102E23; font-weight: bold;">FREE</span>
                     </div>
                     <div class="total-row grand-total">
@@ -297,7 +326,7 @@ object InvoicePrinterHelper {
                         <div>
                             <strong style="color: #102E23; font-size: 14px;">🏛️ 25-Year Craftsmanship Guarantee & Authenticity Certificate</strong><br>
                             <span style="font-size: 11.5px; color: #4A5568;">
-                                Certified genuine Good Dream SpringHaven luxury piece. Includes 100-Night Risk-Free In-Home Sleep Trial.
+                                Certified genuine Good Dream SpringHaven luxury piece. Backed by 25-Year SpringHaven™ Structural Warranty.
                                 Serial Registered: GD-AUT-${order.id.takeLast(8)}
                             </span>
                         </div>

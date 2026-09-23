@@ -175,6 +175,16 @@ fun GoodDreamDrawerContent(
                 )
 
                 DrawerMenuItem(
+                    icon = Icons.Default.ChatBubble,
+                    title = "Live Customer Support",
+                    subtitle = "Chat 1-on-1 with Care Desk Specialists",
+                    onClick = {
+                        onCloseDrawer()
+                        onOpenModal(ActiveModal.CUSTOMER_SUPPORT_CHAT)
+                    }
+                )
+
+                DrawerMenuItem(
                     icon = Icons.AutoMirrored.Filled.Assignment,
                     title = "Your Needs & Custom Orders",
                     subtitle = "Bespoke Size & Material Inquiries",
@@ -351,7 +361,7 @@ fun GoodDreamDrawerContent(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "📍 Sanctuary Flagship Experience Centre:\nNo. 44, Good Dream Pavilion, Interior Boulevard,\nIndiranagar, Bengaluru, Karnataka 560038",
+                            text = "📍 Sanctuary Flagship Experience Centre:\nGOOD DREAMS HOME DECOR PRIVATE LIMITED\nD-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan\nMarketed by: H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013",
                             fontSize = 9.5.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 13.5.sp

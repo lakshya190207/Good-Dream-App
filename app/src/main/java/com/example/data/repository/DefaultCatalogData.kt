@@ -12,7 +12,7 @@ object DefaultCatalogData {
             name = "SpringHaven Series",
             slug = "springhaven-series",
             displayOrder = 1,
-            thumbnailUrl = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=75&w=500&auto=format&fit=crop",
             subtitle = "Flagship ~15-inch Integrated Bed & Mattress Setups"
         ),
         CategoryEntity(
@@ -20,7 +20,7 @@ object DefaultCatalogData {
             name = "Mattress",
             slug = "mattress",
             displayOrder = 2,
-            thumbnailUrl = "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=75&w=500&auto=format&fit=crop",
             subtitle = "Orthopedic, Memory Foam & Pocket Spring"
         ),
         CategoryEntity(
@@ -28,7 +28,7 @@ object DefaultCatalogData {
             name = "Pillow, Bolster and Cushion",
             slug = "pillow-bolster-cushion",
             displayOrder = 3,
-            thumbnailUrl = "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?q=75&w=500&auto=format&fit=crop",
             subtitle = "Ergonomic Sleeping & Support Accessories"
         ),
         CategoryEntity(
@@ -36,7 +36,7 @@ object DefaultCatalogData {
             name = "Cushion, Pillow, Bolster Covers",
             slug = "cushion-pillow-bolster-covers",
             displayOrder = 4,
-            thumbnailUrl = "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?q=75&w=500&auto=format&fit=crop",
             subtitle = "Artisanal Velvet, Cotton & Linen Covers"
         ),
         CategoryEntity(
@@ -44,7 +44,7 @@ object DefaultCatalogData {
             name = "Bedsheet & Protector",
             slug = "bedsheet-protector",
             displayOrder = 5,
-            thumbnailUrl = "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=75&w=500&auto=format&fit=crop",
             subtitle = "100% Egyptian Cotton & Waterproof Protectors"
         ),
         CategoryEntity(
@@ -52,7 +52,7 @@ object DefaultCatalogData {
             name = "Curtains",
             slug = "curtains",
             displayOrder = 6,
-            thumbnailUrl = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=75&w=500&auto=format&fit=crop",
             subtitle = "Thermal Blackout, Linen & Sheer Draperies"
         ),
         CategoryEntity(
@@ -60,7 +60,7 @@ object DefaultCatalogData {
             name = "Sofa",
             slug = "sofa",
             displayOrder = 7,
-            thumbnailUrl = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=75&w=500&auto=format&fit=crop",
             subtitle = "Living Room Sectionals, Loungers & Sets"
         ),
         CategoryEntity(
@@ -68,7 +68,7 @@ object DefaultCatalogData {
             name = "Home Furnishers",
             slug = "home-furnishers",
             displayOrder = 8,
-            thumbnailUrl = "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=75&w=500&auto=format&fit=crop",
             subtitle = "Accent Consoles, Wall Decor & Lamps"
         ),
         CategoryEntity(
@@ -76,7 +76,7 @@ object DefaultCatalogData {
             name = "Office Furniture",
             slug = "office-furniture",
             displayOrder = 9,
-            thumbnailUrl = "https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=75&w=500&auto=format&fit=crop",
             subtitle = "Ergonomic Desks & Modular Workstations"
         ),
         CategoryEntity(
@@ -84,7 +84,7 @@ object DefaultCatalogData {
             name = "Chairs & Revolving Chairs",
             slug = "chairs-revolving-chairs",
             displayOrder = 10,
-            thumbnailUrl = "https://images.unsplash.com/photo-1580481077195-731da03fed7e?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1580481077195-731da03fed7e?q=75&w=500&auto=format&fit=crop",
             subtitle = "Executive Rolling & Accent Armchairs"
         ),
         CategoryEntity(
@@ -92,7 +92,7 @@ object DefaultCatalogData {
             name = "Doormats",
             slug = "doormats",
             displayOrder = 11,
-            thumbnailUrl = "https://images.unsplash.com/photo-1600585154526-990dced4db0d?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1600585154526-990dced4db0d?q=75&w=500&auto=format&fit=crop",
             subtitle = "Coir, Anti-Skid & Luxury Welcome Mats"
         ),
         CategoryEntity(
@@ -100,7 +100,7 @@ object DefaultCatalogData {
             name = "Others",
             slug = "others",
             displayOrder = 12,
-            thumbnailUrl = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=800&auto=format&fit=crop",
+            thumbnailUrl = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=75&w=500&auto=format&fit=crop",
             subtitle = "Bespoke Hardware & Special Accessories"
         )
     )
@@ -118,7 +118,7 @@ object DefaultCatalogData {
             specificationsJson = "Total Height: 15 Inches Integrated Setup|Comfort Layer: 4-inch Organic Belgian Latex & Gel Memory Foam|Core Foundation: 7-Zone Independent Pocket Springs|Quilt: Hand-tufted Cashmere & Silk Damask|Warranty: 25 Years Comprehensive Limited Warranty|Dimensions: 78\" x 72\" (King Size)|Firmness: Medium Plush Luxury (6/10)",
             price = 89999.0,
             originalPrice = 115000.0,
-            imagesJson = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1000&auto=format&fit=crop|https://images.unsplash.com/photo-1540518614846-7ede433c4ef0?q=80&w=1000&auto=format&fit=crop|https://images.unsplash.com/photo-1616046229478-9901c5536a45?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=75&w=600&auto=format&fit=crop|https://images.unsplash.com/photo-1540518614846-7ede433c4ef0?q=75&w=600&auto=format&fit=crop|https://images.unsplash.com/photo-1616046229478-9901c5536a45?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 25,
             thicknessInches = 15,
@@ -138,7 +138,7 @@ object DefaultCatalogData {
             specificationsJson = "Total Height: 14.5 Inches|Coil Count: 2,200 Dual Layer Pocket Springs|Cover: Organic GOTS Certified Cotton|Edge Support: Reinforced Quantum Perimeter Guard|Warranty: 25 Years Comprehensive Limited Warranty|Dimensions: 78\" x 60\" (Queen Size)|Firmness: Balanced Ergonomic Support (7/10)",
             price = 74999.0,
             originalPrice = 95000.0,
-            imagesJson = "https://images.unsplash.com/photo-1540518614846-7ede433c4ef0?q=80&w=1000&auto=format&fit=crop|https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1540518614846-7ede433c4ef0?q=75&w=600&auto=format&fit=crop|https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 25,
             thicknessInches = 15,
@@ -157,7 +157,7 @@ object DefaultCatalogData {
             specificationsJson = "Total Height: 15 Inches Mattress + Foundation|Foam: Copper-infused Temperature Neutral Foam|Base: Solid Kiln-Dried Teak Wood Skeleton|Warranty: 25 Years Comprehensive Limited Warranty|Dimensions: 84\" x 72\" (Super King)|Firmness: Cloud Comfort (5.5/10)",
             price = 99999.0,
             originalPrice = 128000.0,
-            imagesJson = "https://images.unsplash.com/photo-1616046229478-9901c5536a45?q=80&w=1000&auto=format&fit=crop|https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1616046229478-9901c5536a45?q=75&w=600&auto=format&fit=crop|https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = false,
             warrantyYears = 25,
             thicknessInches = 15,
@@ -178,7 +178,7 @@ object DefaultCatalogData {
             specificationsJson = "Thickness: 8 Inches|Core: 100D High-Density Rebonded Foam|Top Layer: Pressure-Relieving Memory Foam|Cover: Anti-microbial Knitted Fabric|Warranty: 10 Years|Firmness: Firm Orthopedic (8/10)",
             price = 24999.0,
             originalPrice = 32000.0,
-            imagesJson = "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop|https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=75&w=600&auto=format&fit=crop|https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = false,
             warrantyYears = 10,
             thicknessInches = 8,
@@ -197,7 +197,7 @@ object DefaultCatalogData {
             specificationsJson = "Thickness: 10 Inches|Spring Type: Barrel-Shaped Pocket Coils|Topper: 2-inch High-Density Foam|Cover: Quilted Belgian Jacquard|Warranty: 10 Years|Firmness: Medium Firm (6.5/10)",
             price = 31999.0,
             originalPrice = 41000.0,
-            imagesJson = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 10,
             thicknessInches = 10,
@@ -218,7 +218,7 @@ object DefaultCatalogData {
             specificationsJson = "Dimensions: 24\" x 15\" x 4.5\"|Core: Pure MDI Cooling Gel Memory Foam|Cover: Washable Bamboo Fiber|Warranty: 3 Years",
             price = 2499.0,
             originalPrice = 3499.0,
-            imagesJson = "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 3,
             thicknessInches = 5,
@@ -237,7 +237,7 @@ object DefaultCatalogData {
             specificationsJson = "Dimensions: 36\" x 9\" Cylinder|Fill: Down Alternative Microfiber|Shell: 300TC Cotton Sateen|Warranty: 2 Years",
             price = 1899.0,
             originalPrice = 2499.0,
-            imagesJson = "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = false,
             warrantyYears = 2,
             thicknessInches = 9,
@@ -258,7 +258,7 @@ object DefaultCatalogData {
             specificationsJson = "Quantity: Pack of 5|Sizes: 16\" x 16\" (40cm x 40cm)|Fabric: 350 GSM Micro-Velvet|Care: Gentle Dry Clean or Handwash",
             price = 1999.0,
             originalPrice = 2999.0,
-            imagesJson = "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 1,
             thicknessInches = 1,
@@ -279,7 +279,7 @@ object DefaultCatalogData {
             specificationsJson = "Thread Count: 1000 TC|Drop Depth: Fits up to 16\" mattresses|Material: 100% Extra Long Staple Cotton|Finish: Silk Sateen Luster",
             price = 4599.0,
             originalPrice = 6499.0,
-            imagesJson = "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = false,
             warrantyYears = 2,
             thicknessInches = 1,
@@ -298,7 +298,7 @@ object DefaultCatalogData {
             specificationsJson = "Surface: 100% Organic Bamboo Terry|Backing: 100% Waterproof TPU Membrane|Skirt: 360 Elastic Deep Pocket (Up to 16\")|Machine Washable: Yes",
             price = 1799.0,
             originalPrice = 2499.0,
-            imagesJson = "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 3,
             thicknessInches = 1,
@@ -319,7 +319,7 @@ object DefaultCatalogData {
             specificationsJson = "Header: Rust-proof Brass Grommets (8 per panel)|Width: 54\" per panel (108\" total)|Length: 9 Feet (Floor to ceiling)|Weight: 380 GSM",
             price = 3299.0,
             originalPrice = 4599.0,
-            imagesJson = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1513694203232-719a280e022f?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = false,
             warrantyYears = 3,
             thicknessInches = 1,
@@ -340,7 +340,7 @@ object DefaultCatalogData {
             specificationsJson = "Seating Capacity: 3 Persons|Frame: Seasoned Sheesham Hardwood|Cushioning: 40D Super-Soft Foam + S-Springs|Upholstery: Water-Repellent Velvet|Warranty: 7 Years Structural",
             price = 54999.0,
             originalPrice = 72000.0,
-            imagesJson = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 7,
             thicknessInches = 34,
@@ -361,7 +361,7 @@ object DefaultCatalogData {
             specificationsJson = "Dimensions: 48\" L x 14\" D x 32\" H|Wood: White Oak Veneer on engineered board|Hardware: Brushed Gold Brass Alloy|Assembly: Pre-assembled",
             price = 22999.0,
             originalPrice = 29999.0,
-            imagesJson = "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 5,
             thicknessInches = 32,
@@ -382,7 +382,7 @@ object DefaultCatalogData {
             specificationsJson = "Height Range: 24\" to 50\"|Load Capacity: 130 kg|Top: Solid Natural Walnut 60\" x 30\"|Warranty: 5 Years Motor & Electronics",
             price = 36999.0,
             originalPrice = 48000.0,
-            imagesJson = "https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 5,
             thicknessInches = 30,
@@ -403,7 +403,7 @@ object DefaultCatalogData {
             specificationsJson = "Recline Angle: 90° - 135° Lockable|Gas Lift: Class 4 BIFMA Certified|Base: Aluminum Alloy 5-Star Wheels|Weight Support: Up to 150 kg|Warranty: 3 Years",
             price = 18999.0,
             originalPrice = 24999.0,
-            imagesJson = "https://images.unsplash.com/photo-1580481077195-731da03fed7e?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1580481077195-731da03fed7e?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = false,
             warrantyYears = 3,
             thicknessInches = 48,
@@ -424,7 +424,7 @@ object DefaultCatalogData {
             specificationsJson = "Dimensions: 30\" x 18\" (75cm x 45cm)|Thickness: 1.5 cm Thick Coir Bristles|Backing: Weatherproof Vulcanized Rubber|Indoor/Outdoor: All-Weather",
             price = 999.0,
             originalPrice = 1499.0,
-            imagesJson = "https://images.unsplash.com/photo-1600585154526-990dced4db0d?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1600585154526-990dced4db0d?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = false,
             warrantyYears = 1,
             thicknessInches = 1,
@@ -445,7 +445,7 @@ object DefaultCatalogData {
             specificationsJson = "Capacity: 400 ml Tank (10 Hours continuous)|Light: 7 Color Ambient Mood Ring|Included: 15ml Lavender & Cedarwood Blend|Power: Type-C 5V",
             price = 2899.0,
             originalPrice = 3999.0,
-            imagesJson = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1000&auto=format&fit=crop",
+            imagesJson = "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=75&w=600&auto=format&fit=crop",
             isNewLaunch = true,
             warrantyYears = 1,
             thicknessInches = 6,
@@ -456,12 +456,12 @@ object DefaultCatalogData {
     )
 
     val appConfigs = listOf(
-        AppConfigEntity("company_name", "Good Dream Home Decor Private Limited"),
+        AppConfigEntity("company_name", "GOOD DREAMS HOME DECOR PRIVATE LIMITED"),
         AppConfigEntity("tagline", "Comfort for a Better Tomorrow"),
-        AppConfigEntity("support_phone", "+91 80 4123 9999"),
-        AppConfigEntity("support_whatsapp", "+91 98765 43210"),
-        AppConfigEntity("support_email", "care@gooddreamhomedecor.com"),
-        AppConfigEntity("store_address", "No. 44, Good Dream Pavilion, Interior Boulevard, Indiranagar, Bengaluru, Karnataka 560038"),
+        AppConfigEntity("support_phone", "+91 7014983696"),
+        AppConfigEntity("support_whatsapp", "+91 7014983696"),
+        AppConfigEntity("support_email", "gooddreamshomedecor@gmail.com"),
+        AppConfigEntity("store_address", "D-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan\nMarketed by: H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013"),
         AppConfigEntity("warranty_policy_url", "https://gooddreamhomedecor.com/warranty-policy"),
         AppConfigEntity("banner_offer", "Festive Grand Launch: Complimentary Silk Pillows with SpringHaven Series!"),
         AppConfigEntity("sponsor_referral_reward", "₹2,500 Store Credit on Every Friend Referral")

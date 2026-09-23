@@ -41,6 +41,11 @@ class NotificationPushUnitTest {
             val privilegesChannel = notificationManager.getNotificationChannel(NotificationHelper.CHANNEL_ID_PRIVILEGES)
             assertNotNull("Privileges notification channel should be registered", privilegesChannel)
             assertEquals("sanctuary_privileges_channel", privilegesChannel?.id)
+
+            val supportChatChannel = notificationManager.getNotificationChannel(NotificationHelper.CHANNEL_ID_SUPPORT_CHAT)
+            assertNotNull("Support chat notification channel should be registered", supportChatChannel)
+            assertEquals("sanctuary_support_chat_channel", supportChatChannel?.id)
+            assertEquals(NotificationManager.IMPORTANCE_HIGH, supportChatChannel?.importance)
         }
     }
 
@@ -72,5 +77,27 @@ class NotificationPushUnitTest {
         val matchedNotification = activeNotifications.find { it.id == testNotificationId }
         assertNotNull("Posted notification should have matching notification ID", matchedNotification)
         assertEquals(NotificationHelper.CHANNEL_ID_ORDERS, matchedNotification?.notification?.channelId)
+    }
+
+    @Test
+    fun testShowAdminDirectMessageNotification() {
+        NotificationHelper.createNotificationChannels(context)
+
+        val testChatId = "chat_client_test_7788"
+        val expectedNotificationId = (testChatId.hashCode() and 0x7FFFFFFF)
+
+        NotificationHelper.showAdminDirectMessageNotification(
+            context = context,
+            chatId = testChatId,
+            customerName = "Ananya Verma",
+            adminMessage = "Your custom mattress is ready for delivery.",
+            orderReference = "ORD-12345"
+        )
+
+        val activeNotifications = notificationManager.activeNotifications
+        assertTrue("Active notifications should contain the direct message notification", activeNotifications.isNotEmpty())
+        val matchedNotification = activeNotifications.find { it.id == expectedNotificationId }
+        assertNotNull("Notification with derived chatId hash should be active in notification manager", matchedNotification)
+        assertEquals(NotificationHelper.CHANNEL_ID_SUPPORT_CHAT, matchedNotification?.notification?.channelId)
     }
 }

@@ -293,7 +293,7 @@ fun FullscreenFabricInspectorModal(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        itemsIndexed(images) { idx, url ->
+                        itemsIndexed(images, key = { idx, url -> "$idx-$url" }) { idx, url ->
                             val isSelected = currentImageIndex == idx
                             Box(
                                 modifier = Modifier

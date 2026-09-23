@@ -42,7 +42,7 @@ The app combines traditional artisan craft with cutting-edge mobile technologies
 ### 💳 4. Secure Checkout & Payments
 * **PCI-DSS Level 1 Delegated Payments:** Fully integrated **Razorpay Checkout** handling UPI, NetBanking, Credit/Debit cards, and Cash on Delivery (COD).
 * **Coupon & Milestone Engine:** Real-time promotional codes with delivery milestone progress bars.
-* **Address Book & Slots:** Save delivery addresses and select preferred white-glove doorstep delivery windows.
+* **Address Book & Slots:** Save delivery addresses and select preferred doorstep delivery windows.
 
 ### 🛡️ 5. Enterprise-Grade Security
 * **Hardware-Backed Encryption:** Stores sensitive credentials using Android `EncryptedSharedPreferences` (AES-256 GCM).
@@ -217,7 +217,7 @@ Good-Dream-App/
 ## 👤 Author & Maintainer
 
 * **Author:** Lakshya
-* **Contact:** [Lakshya190207@gmail.com](mailto:Lakshya190207@gmail.com)
+* **Contact:** [gooddreamshomedecor@gmail.com](mailto:gooddreamshomedecor@gmail.com) | [Lakshya190207@gmail.com](mailto:Lakshya190207@gmail.com)
 * **Organization:** Good Dream Home Decor Private Limited
 
 ---

@@ -1,10 +1,12 @@
 package com.example.data.repository
 
+import androidx.room.withTransaction
 import com.example.data.local.AppDatabase
 import com.example.data.model.*
 import com.example.data.remote.EmailDeliveryService
 import com.example.data.remote.EmailSendResult
 import com.example.data.remote.FirestoreCatalogService
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +29,7 @@ class GoodDreamRepository(
     private val inquiryDao = database.inquiryDao()
     private val appConfigDao = database.appConfigDao()
     private val orderDao = database.orderDao()
+    private val userDao = database.userDao()
 
     val categories: Flow<List<CategoryEntity>> = categoryDao.getAllActiveCategories()
     val allProducts: Flow<List<ProductEntity>> = productDao.getAllProducts()
@@ -37,9 +40,39 @@ class GoodDreamRepository(
     val allInquiries: Flow<List<InquiryEntity>> = inquiryDao.getAllInquiries()
     val appConfigs: Flow<List<AppConfigEntity>> = appConfigDao.getAllConfigs()
     val allOrders: Flow<List<OrderEntity>> = orderDao.getAllOrders()
+    val allRegisteredUsers: Flow<List<UserEntity>> = userDao.getAllUsers()
 
     fun getUserInquiries(email: String): Flow<List<InquiryEntity>> = inquiryDao.getInquiriesByEmail(email)
     fun getUserOrders(email: String): Flow<List<OrderEntity>> = orderDao.getOrdersByEmail(email)
+
+    suspend fun saveUser(user: UserEntity) = withContext(ioDispatcher) {
+        userDao.insertUser(user)
+    }
+
+    suspend fun getUserByEmail(email: String): UserEntity? = withContext(ioDispatcher) {
+        userDao.getUserByEmail(email)
+    }
+
+    suspend fun getCurrentSessionUser(): UserEntity? = withContext(ioDispatcher) {
+        userDao.getCurrentSessionUser()
+    }
+
+    suspend fun setCurrentSession(email: String) = withContext(ioDispatcher) {
+        userDao.clearCurrentSessionFlag()
+        userDao.setCurrentSessionFlag(email)
+    }
+
+    suspend fun clearCurrentSession() = withContext(ioDispatcher) {
+        userDao.clearCurrentSessionFlag()
+    }
+
+    suspend fun getAllUsersSync(): List<UserEntity> = withContext(ioDispatcher) {
+        userDao.getAllUsersSync()
+    }
+
+    suspend fun deleteUser(email: String) = withContext(ioDispatcher) {
+        userDao.deleteUserByEmail(email)
+    }
 
     suspend fun initializeCatalogIfEmpty() = withContext(ioDispatcher) {
         val existingCategories = categoryDao.getAllActiveCategories().first()
@@ -88,8 +121,8 @@ class GoodDreamRepository(
     /**
      * Starts listening in real-time to product updates from Firestore and persists to Room.
      */
-    fun startRealtimeProductSync(scope: CoroutineScope) {
-        firestoreCatalogService.startRealtimeProductSync { remoteProducts ->
+    fun startRealtimeProductSync(scope: CoroutineScope): ListenerRegistration? {
+        return firestoreCatalogService.startRealtimeProductSync { remoteProducts ->
             scope.launch(ioDispatcher) {
                 productDao.insertProducts(remoteProducts)
             }
@@ -267,6 +300,14 @@ class GoodDreamRepository(
     // Real Order & Checkout operations
     suspend fun insertOrder(order: OrderEntity) = withContext(ioDispatcher) {
         orderDao.insertOrder(order)
+        firestoreCatalogService.saveOrderToCloud(order)
+    }
+
+    suspend fun placeOrderAtomic(order: OrderEntity) = withContext(ioDispatcher) {
+        database.withTransaction {
+            orderDao.insertOrder(order)
+            cartDao.clearCart()
+        }
         firestoreCatalogService.saveOrderToCloud(order)
     }
 

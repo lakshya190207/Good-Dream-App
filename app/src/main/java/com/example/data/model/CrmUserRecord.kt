@@ -1,13 +1,16 @@
 package com.example.data.model
 
+import androidx.compose.runtime.Immutable
 import com.example.data.local.SavedAddress
 
 enum class CrmUserType(val label: String) {
     REGISTERED_VIP("Registered VIP"),
     ORDER_CLIENT("Order Client"),
-    INQUIRY_LEAD("Inquiry Lead")
+    INQUIRY_LEAD("Inquiry Lead"),
+    ADMIN("Administrator")
 }
 
+@Immutable
 data class CrmUserRecord(
     val id: String,
     val name: String,

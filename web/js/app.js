@@ -90,7 +90,7 @@ const state = {
   aiChatMessages: [
     {
       sender: 'bot',
-      text: "Welcome to Good Dream Home Decor! 🌙 I'm your DreamCare AI Concierge. How can I help you today? Ask me about mattress firmness for back pain, custom sizing, stain cleaning, 100-night trials, or order status."
+      text: "Welcome to Good Dream Home Decor! 🌙 I'm your DreamCare AI Concierge. How can I help you today? Ask me about mattress firmness for back pain, custom sizing, stain cleaning, 25-year warranty, or order status."
     }
   ]
 };
@@ -592,7 +592,7 @@ function renderHomeTab() {
         <div class="hero-content">
           <div class="hero-top-row">
             <span class="badge-flagship breathe">FLAGSHIP COLLECTION</span>
-            <span class="badge-pill">🛡️ 100-Night Trial</span>
+            <span class="badge-pill">🛡️ 25-Yr Warranty</span>
           </div>
           <div class="hero-bottom-text">
             <h2>SpringHaven™ Series</h2>
@@ -766,7 +766,7 @@ function renderHomeTab() {
           🕒 Hours: ${CORPORATE_CONFIG.supportHours}
         </div>
         <div class="flagship-footer-row">
-          <span>In-Store Sleep Trials Available</span>
+          <span>Experience Studio Consultations</span>
           <button class="btn-text-gold" onclick="openModal('sanctuary_care', { type: 'your_needs' })">Book Visit →</button>
         </div>
       </div>
@@ -1093,7 +1093,7 @@ function renderNewLaunchesTab() {
               
               <div class="specs-preview-chips">
                 <span>Thickness: <strong>${prod.thicknessInches}"</strong></span>
-                <span>Trial: <strong>100 Nights</strong></span>
+                <span>Warranty: <strong>${prod.warrantyYears || 25} Years</strong></span>
                 <span>White-Glove: <strong>Included</strong></span>
               </div>
 
@@ -1200,7 +1200,7 @@ function renderAccountTab() {
               <span class="menu-row-icon">⚖️</span>
               <div class="menu-row-text">
                 <h5>Mattress Comparison Matrix</h5>
-                <p>Side-by-side specs, coils, warranty & trial schedules</p>
+                <p>Side-by-side specs, coils, materials & warranty schedules</p>
               </div>
             </div>
             <span class="menu-row-arrow">→</span>
@@ -1410,7 +1410,7 @@ function renderAccountTab() {
               <span class="menu-row-icon">🔄</span>
               <div class="menu-row-text">
                 <h5>Refund & Cancellation Policy</h5>
-                <p>100-night trial, return eligibility, inspections & refund timelines</p>
+                <p>Return eligibility, white-glove inspections & refund timelines</p>
               </div>
             </div>
             <span class="menu-row-arrow">→</span>
@@ -1551,7 +1551,7 @@ function renderLoginModal() {
           <div style="font-size: 2rem;">👑</div>
           <div style="font-size: 0.85rem; line-height: 1.5;">
             <strong style="color: var(--forest-primary); display: block; font-size: 0.95rem;">Unlock 25% Member Privilege (WELCOME25)</strong>
-            <span>Sign in or register to instantly unlock 25% OFF all luxury sleep systems, 100-night risk-free trial, and priority concierge dispatch.</span>
+            <span>Sign in or register to instantly unlock 25% OFF all luxury sleep systems, 25-year structural warranty, and priority concierge dispatch.</span>
           </div>
         </div>
 
@@ -2315,8 +2315,8 @@ function renderCompareModal() {
               ${mattresses.slice(0, 3).map((m) => `<td>${m.warrantyYears} Years Comprehensive</td>`).join('')}
             </tr>
             <tr>
-              <td><strong>Trial Period</strong></td>
-              ${mattresses.slice(0, 3).map((m) => `<td>100-Night Risk-Free Trial</td>`).join('')}
+              <td><strong>Craftsmanship</strong></td>
+              ${mattresses.slice(0, 3).map((m) => `<td>100% Handcrafted Luxury</td>`).join('')}
             </tr>
             <tr>
               <td><strong>Action</strong></td>
@@ -3899,7 +3899,7 @@ function renderAiConciergeModal() {
         <!-- Quick Prompts Chips -->
         <div class="ai-quick-chips">
           <button onclick="sendQuickAiPrompt('Which mattress is best for chronic lower back pain?')">Best for back pain?</button>
-          <button onclick="sendQuickAiPrompt('How does the 100-Night Sleep Trial work?')">100-Night trial details</button>
+          <button onclick="sendQuickAiPrompt('How does the 25-Year SpringHaven Warranty work?')">25-Year warranty details</button>
           <button onclick="sendQuickAiPrompt('Can you make a custom size for my antique bed?')">Custom sizing inquiry</button>
           <button onclick="sendQuickAiPrompt('What is the difference between SpringHaven and regular mattresses?')">SpringHaven vs Regular?</button>
         </div>
@@ -3934,8 +3934,8 @@ function sendAiMessage() {
 
   if (q.includes('back pain') || q.includes('ortho') || q.includes('spine')) {
     reply = "For chronic back or spinal pain, we recommend the certified **Good Dream OrthoCare SpineAlign 8\"** (₹24,999) or our flagship **SpringHaven Grand Sovereign 15\"** (₹89,999). Both feature 5-zone anatomical contouring that relieves sciatic nerve tension while keeping your vertebrae in neutral alignment.";
-  } else if (q.includes('trial') || q.includes('100')) {
-    reply = "Good Dream provides a **100-Night Risk-Free Sleep Trial** on all our mattresses! Sleep on it for at least 30 nights to let your body adjust. If you aren't completely delighted, our white-glove team will arrange 100% free doorstep pickup and issue a full refund within 5–7 business days.";
+  } else if (q.includes('warranty') || q.includes('guarantee') || q.includes('return') || q.includes('trial')) {
+    reply = "Good Dream mattresses are bespoke handcrafted sleep systems protected by our **25-Year SpringHaven™ Structural Warranty** and complimentary white-glove bedroom delivery. Our technicians inspect the mattress with you upon room setup. Any manufacturing flaw or damage is replaced immediately at zero charge.";
   } else if (q.includes('custom') || q.includes('size') || q.includes('antique') || q.includes('inch')) {
     reply = "Yes! Our Jaipur atelier specializes in bespoke custom sizing down to the exact half-inch. You can launch our **Bespoke Mattress Architect** (under Precision Sleep Suite) to configure width, length, thickness, pocket coils, and even custom monogram silk embroidery.";
   } else if (q.includes('springhaven')) {

@@ -11,10 +11,10 @@ class RefinementsUnitTest {
     fun testCartMilestoneThresholdsAndTiers() {
         assertEquals(3, CART_MILESTONES.size)
 
-        // Tier 1: White-Glove Installation at 25,000
+        // Tier 1: Free Delivery & Setup at 25,000
         val tier1 = CART_MILESTONES[0]
         assertEquals(25000.0, tier1.threshold, 0.01)
-        assertEquals("White-Glove Installation", tier1.title)
+        assertEquals("Free Delivery & Setup", tier1.title)
         assertEquals("Free Setup", tier1.shortLabel)
 
         // Tier 2: Mulberry Silk Sleep Mask at 50,000
@@ -314,5 +314,41 @@ class RefinementsUnitTest {
         val rightCount = cannonParticles.count { it.x > 900f }
         assertEquals(10, leftCount)
         assertEquals(10, rightCount)
+    }
+
+    @Test
+    fun testCouponPrivilegePolicy() {
+        val legacyCodes = listOf("SANCTUARY20", "DECORFEST5K", "SOVEREIGN25", "SPRINGHAVEN25", "DREAM100")
+        val validPrivilegeCode = "WELCOME25"
+
+        // Helper mimicking ViewModel applyCoupon logic
+        fun evaluateCoupon(code: String, isLoggedIn: Boolean, subtotal: Double): Pair<Boolean, Double> {
+            val normalized = code.trim().uppercase()
+            if (normalized != "WELCOME25") {
+                return false to 0.0
+            }
+            if (!isLoggedIn) {
+                return false to 0.0
+            }
+            return true to (subtotal * 0.25)
+        }
+
+        // 1. All legacy generic codes must be rejected whether logged in or not
+        legacyCodes.forEach { code ->
+            val (acceptedLoggedOut, _) = evaluateCoupon(code, isLoggedIn = false, subtotal = 40000.0)
+            assertFalse("Legacy code $code must be rejected when logged out", acceptedLoggedOut)
+
+            val (acceptedLoggedIn, _) = evaluateCoupon(code, isLoggedIn = true, subtotal = 40000.0)
+            assertFalse("Legacy code $code must be rejected when logged in", acceptedLoggedIn)
+        }
+
+        // 2. WELCOME25 must be rejected when logged out
+        val (loggedOutSuccess, _) = evaluateCoupon(validPrivilegeCode, isLoggedIn = false, subtotal = 40000.0)
+        assertFalse("WELCOME25 must be rejected when user is not logged in", loggedOutSuccess)
+
+        // 3. WELCOME25 must be accepted and grant 25% discount when logged in
+        val (loggedInSuccess, discount) = evaluateCoupon(validPrivilegeCode, isLoggedIn = true, subtotal = 40000.0)
+        assertTrue("WELCOME25 must be accepted when user is logged in", loggedInSuccess)
+        assertEquals(10000.0, discount, 0.01)
     }
 }

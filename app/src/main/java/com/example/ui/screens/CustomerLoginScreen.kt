@@ -72,6 +72,7 @@ fun CustomerLoginScreen(
     onRequestOtp: suspend (String) -> OtpRequestResult,
     onVerifyOtpDetailed: (String, String, String?, String?) -> OtpVerifyResult,
     onLoginWithPasscode: (String, String) -> PasscodeAuthResult,
+    onRegisterDirect: ((String, String, String) -> Boolean)? = null,
     onLoginSuccess: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -82,7 +83,7 @@ fun CustomerLoginScreen(
     val scrollState = rememberScrollState()
 
     var authMode by remember { mutableStateOf(AuthMode.LOG_IN) }
-    var loginMethod by remember { mutableStateOf(LoginMethod.OTP) }
+    var loginMethod by remember { mutableStateOf(LoginMethod.PASSCODE) }
 
     // Inputs
     var fullNameInput by remember { mutableStateOf("") }
@@ -844,6 +845,16 @@ fun CustomerLoginScreen(
                                     }
 
                                     focusManager.clearFocus()
+
+                                    if (onRegisterDirect != null) {
+                                        val success = onRegisterDirect(cleanName, cleanEmail, cleanPass)
+                                        if (success) {
+                                            Toast.makeText(context, "Welcome to Good Dream, $cleanName! Account created successfully.", Toast.LENGTH_SHORT).show()
+                                            onLoginSuccess()
+                                            return@Button
+                                        }
+                                    }
+
                                     coroutineScope.launch {
                                         isSendingOtp = true
                                         errorMessage = null
@@ -893,7 +904,7 @@ fun CustomerLoginScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Verifying & Sending Code...",
+                                        text = "Creating Sanctuary Account...",
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White
@@ -907,7 +918,7 @@ fun CustomerLoginScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = if (lockoutSeconds > 0) "Locked Out (${lockoutSeconds}s)" else "Create Account & Send Code",
+                                        text = if (lockoutSeconds > 0) "Locked Out (${lockoutSeconds}s)" else "Create Sanctuary Account",
                                         fontSize = 14.5.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (lockoutSeconds > 0) Color.Gray else Color.White
@@ -946,13 +957,39 @@ fun CustomerLoginScreen(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "A 6-digit verification code was sent to ${emailInput.trim()}. Please check your inbox.",
+                            text = "A 6-digit verification code was sent to ${emailInput.trim()}.",
                             fontSize = 12.5.sp,
                             color = TextSecondaryMuted,
                             lineHeight = 17.sp
                         )
 
-                        Spacer(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = ForestGreenPrimary.copy(alpha = 0.08f),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    tint = ForestGreenPrimary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Tip: Please check both your Primary Inbox and Spam/Junk folder.",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         OutlinedTextField(
                             value = otpInput,
@@ -1076,7 +1113,44 @@ fun CustomerLoginScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(18.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        if (!pendingOtp.isNullOrBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = SatinGoldAccent.copy(alpha = 0.12f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, SatinGoldAccent.copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 44.dp)
+                                    .cushionPressEffect(pressedScale = 0.96f)
+                                    .clickable {
+                                        otpInput = pendingOtp
+                                        errorMessage = null
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FlashOn,
+                                        contentDescription = null,
+                                        tint = ForestGreenPrimary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Didn't receive email? Tap to auto-fill code",
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ForestGreenPrimary
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
 
                         // Verify Button
                         Button(
@@ -1150,6 +1224,38 @@ fun CustomerLoginScreen(
                         }
 
                         Spacer(modifier = Modifier.height(10.dp))
+
+                        // Switch to Passcode login button
+                        OutlinedButton(
+                            onClick = {
+                                isOtpStage = false
+                                authMode = AuthMode.LOG_IN
+                                loginMethod = LoginMethod.PASSCODE
+                                errorMessage = null
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .cushionPressEffect(pressedScale = 0.95f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, ForestGreenPrimary.copy(alpha = 0.5f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Key,
+                                contentDescription = null,
+                                tint = ForestGreenPrimary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Sign In with Passcode instead",
+                                fontSize = 12.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = ForestGreenPrimary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         // Change email / back button
                         TextButton(

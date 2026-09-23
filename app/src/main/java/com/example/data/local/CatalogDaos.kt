@@ -153,3 +153,33 @@ interface OrderDao {
     @Query("UPDATE orders SET status = :status WHERE id = :orderId")
     suspend fun updateOrderStatus(orderId: String, status: String)
 }
+
+@Dao
+interface UserDao {
+    @Query("SELECT * FROM users ORDER BY createdAtEpochMs DESC")
+    fun getAllUsers(): Flow<List<UserEntity>>
+
+    @Query("SELECT * FROM users ORDER BY createdAtEpochMs DESC")
+    suspend fun getAllUsersSync(): List<UserEntity>
+
+    @Query("SELECT * FROM users WHERE LOWER(email) = LOWER(:email) LIMIT 1")
+    suspend fun getUserByEmail(email: String): UserEntity?
+
+    @Query("SELECT * FROM users WHERE isCurrentSession = 1 LIMIT 1")
+    suspend fun getCurrentSessionUser(): UserEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUser(user: UserEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUsers(users: List<UserEntity>)
+
+    @Query("UPDATE users SET isCurrentSession = 0")
+    suspend fun clearCurrentSessionFlag()
+
+    @Query("UPDATE users SET isCurrentSession = 1 WHERE LOWER(email) = LOWER(:email)")
+    suspend fun setCurrentSessionFlag(email: String)
+
+    @Query("DELETE FROM users WHERE LOWER(email) = LOWER(:email)")
+    suspend fun deleteUserByEmail(email: String)
+}

@@ -19,9 +19,9 @@ class GeminiChatService {
         private const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/"
 
         // Supported Gemini models configured for maximum cost efficiency and speed
-        const val MODEL_FLASH_LITE = "gemini-3.5-flash-lite" // Cost-efficient, ultra-fast, lightweight (Default)
-        const val MODEL_FLASH = "gemini-3.5-flash" // Standard general tasks
-        const val MODEL_PRO = "gemini-3.1-pro-preview" // Complex reasoning
+        const val MODEL_FLASH_LITE = "gemini-2.0-flash" // Cost-efficient, ultra-fast, lightweight (Default)
+        const val MODEL_FLASH = "gemini-2.0-flash" // Standard general tasks
+        const val MODEL_PRO = "gemini-1.5-pro" // Complex reasoning
 
         const val DEFAULT_MODEL = MODEL_FLASH_LITE
 
@@ -29,8 +29,8 @@ class GeminiChatService {
         // to prevent quadratic token growth and save substantially on API billing
         const val MAX_HISTORY_MESSAGES = 6
 
-        // Limits maximum output tokens per turn to prevent token bloat and runaway costs
-        const val MAX_OUTPUT_TOKENS = 350
+        // Limits maximum output tokens per turn (allowing room for Gemini thinking tokens + full answer)
+        const val MAX_OUTPUT_TOKENS = 1500
 
         val SYSTEM_INSTRUCTION = """
             You are the "DreamCare AI Concierge", an expert, warm, and attentive customer service specialist for "Good Dream Home Decor Private Limited" (tagline: "Comfort for a Better Tomorrow").
@@ -39,7 +39,7 @@ class GeminiChatService {
             1. Mattress selection & firmness guidance (e.g. orthopedic firm for back pain and spine alignment; medium-firm for couples; plush for side sleepers).
             2. Bed sizing & custom dimensions (King: 76"x80", Queen: 60"x80", Single/Twin: 38"x75", Indian standard 72"x72", 72"x78", and bespoke custom sizes).
             3. Mattress & upholstery care (stain removal using baking soda & mild detergent, rotating mattresses every 3-6 months, using waterproof breathable protectors).
-            4. Good Dream customer policies: 100-Night Risk-Free Sleep Trial, 10-Year Craftsmanship Warranty, and Free White-Glove doorstep delivery & assembly.
+            4. Good Dream customer policies: 25-Year SpringHaven™ Structural Warranty, and Free doorstep delivery & assembly.
             5. Order tracking, service visits, and maintenance inquiries.
             
             Cost & Conciseness Guidelines:
@@ -50,9 +50,9 @@ class GeminiChatService {
     }
 
     private val httpClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
+        .connectTimeout(7, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
         .build()
 
     /**
@@ -76,7 +76,8 @@ class GeminiChatService {
 
         if (isKeyConfigured) {
             try {
-                val url = "$BASE_URL$model:generateContent"
+                val effectiveModel = if (model.contains("3.5")) MODEL_FLASH_LITE else model
+                val url = "$BASE_URL$effectiveModel:generateContent?key=$rawApiKey"
 
                 val jsonBody = JSONObject().apply {
                     put("systemInstruction", JSONObject().apply {
@@ -95,7 +96,16 @@ class GeminiChatService {
                         history
                     }
 
+                    // Ensure conversation history starts with a user turn (API requirement)
+                    val validHistory = mutableListOf<ChatMessage>()
                     for (msg in prunedHistory) {
+                        if (validHistory.isEmpty() && msg.role != MessageRole.USER) {
+                            continue
+                        }
+                        validHistory.add(msg)
+                    }
+
+                    for (msg in validHistory) {
                         contentsArray.put(JSONObject().apply {
                             put("role", if (msg.role == MessageRole.USER) "user" else "model")
                             put("parts", JSONArray().apply {
@@ -140,28 +150,38 @@ class GeminiChatService {
                             val content = candidate.optJSONObject("content")
                             val parts = content?.optJSONArray("parts")
                             if (parts != null && parts.length() > 0) {
-                                val replyText = parts.getJSONObject(0).optString("text")
-                                if (replyText.isNotBlank()) {
-                                    return@withContext replyText.trim()
+                                val sb = StringBuilder()
+                                for (i in 0 until parts.length()) {
+                                    val partObj = parts.getJSONObject(i)
+                                    if (!partObj.optBoolean("thought", false)) {
+                                        val text = partObj.optString("text")
+                                        if (text.isNotBlank()) {
+                                            sb.append(text)
+                                        }
+                                    }
+                                }
+                                val fullReply = sb.toString().trim()
+                                if (fullReply.isNotBlank()) {
+                                    return@withContext fullReply
                                 }
                             }
                         }
                     } else {
-                        Log.w(TAG, "Gemini API error code ${response.code}: $responseStr")
+                        Log.w(TAG, "Gemini API non-200 response (${response.code}); falling back to on-device concierge")
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Gemini request failed, falling back to local concierge knowledge", e)
+                Log.w(TAG, "Gemini network call failed; falling back to on-device concierge: ${e.message}")
             }
         }
 
-        // Intelligent local concierge responder for small problems when API key is unavailable or offline
+        // Intelligent local concierge responder for small problems when API key is unavailable, quota exhausted, or offline
         return@withContext generateLocalConciergeFallback(userMessage)
     }
 
     /**
      * Provides structured, highly accurate help for common small problems
-     * regarding sleep, furniture, mattress sizing, cleaning, warranty, and trial periods.
+     * regarding sleep, furniture, mattress sizing, cleaning, warranty, and delivery.
      */
     private fun generateLocalConciergeFallback(query: String): String {
         val lower = query.lowercase().trim()
@@ -206,13 +226,13 @@ class GeminiChatService {
                 """.trimIndent()
             }
 
-            lower.contains("trial") || lower.contains("100") || lower.contains("night") || lower.contains("return") -> {
+            lower.contains("return") || lower.contains("cancellation") || lower.contains("trial") -> {
                 """
-                **Good Dream 100-Night Risk-Free Sleep Trial:**
+                **Good Dream Return & Delivery Policy:**
 
-                - **Break-in Period**: Your body needs approximately 21 to 30 nights to adjust to proper orthopedic spinal support.
-                - **Full Refund Guarantee**: If you aren't completely in love within 100 nights, contact us for free pickup and a 100% refund.
-                - **Zero Hassle**: Pickups are scheduled at your convenience; returned mattresses in clean condition are sanitized and donated to local charities.
+                - **White-Glove Inspection**: When our technician unboxes your mattress in your bedroom, you personally inspect its craftsmanship and comfort before settling the delivery.
+                - **Bespoke Quality**: Because Good Dream mattresses are handcrafted on-demand to precise specifications, standard trial returns do not apply. Any transit damage or manufacturing flaw qualifies for an immediate replacement at zero charge.
+                - **Cancellation**: Orders can be cancelled prior to factory dispatch for a 100% full refund.
                 """.trimIndent()
             }
 
@@ -231,9 +251,41 @@ class GeminiChatService {
                 """
                 **Delivery & Installation Support:**
 
-                - **White-Glove Delivery**: Complimentary for all mattress orders. Our certified logistics team handles doorstep delivery, unboxing, room-of-choice placement, and packaging disposal.
+                - **Delivery & Setup**: Complimentary for all mattress orders. Our certified logistics team handles doorstep delivery, unboxing, room-of-choice placement, and packaging disposal.
                 - **Standard Delivery Time**: 2 to 4 business days for standard sizes; 5 to 7 business days for custom bespoke dimensions.
-                - **Tracking**: Check your status in **Order Tracking** or call our concierge line at **+91 80 4123 9999**.
+                - **Tracking**: Check your status in **Order Tracking** or call our concierge line at **+91 7014983696**.
+                """.trimIndent()
+            }
+
+            lower.contains("bespoke") || lower.contains("custom") || lower.contains("atelier") || lower.contains("architect") || lower.contains("monogram") -> {
+                """
+                **Good Dream 3D Bespoke Mattress Architect:**
+
+                Craft your mattress from the inside out with millimeter precision:
+                - **Custom Dimensions**: Tailor exact width, length, and depth in inches to fit antique frames, platform beds, or yachts.
+                - **Core Selection**: Choose between Multi-Zone Pocket Coils, 100% Organic Belgian Dunlop Latex, or High-Resilience Aerofoam.
+                - **Personalized Monogramming**: Add custom gold or silver thread embroidery with your name or family crest.
+                - **How to start**: Open the **Bespoke Atelier** from the Home tab or tap **3D Bespoke Studio** in the menu drawer.
+                """.trimIndent()
+            }
+
+            lower.contains("coupon") || lower.contains("code") || lower.contains("discount") || lower.contains("voucher") || lower.contains("welcome25") || lower.contains("privilege") -> {
+                """
+                **Sanctuary Member Privilege:**
+
+                - **Exclusive Welcome Code**: Registered members unlock **25% OFF** their entire first order with code **WELCOME25**.
+                - **How to unlock**: Simply sign up or log in to your Good Dream account. Once signed in, the voucher unlocks automatically on your Cart screen with a 1-tap apply button!
+                - **Stacking**: Applies across all mattresses, organic latex pillows, and cashmere toppers.
+                """.trimIndent()
+            }
+
+            lower.contains("cod") || lower.contains("advance") || lower.contains("payment") || lower.contains("upi") || lower.contains("emi") -> {
+                """
+                **Payment & Delivery Options:**
+
+                - **Online Payments**: 100% secure payment via Razorpay (UPI, Google Pay, PhonePe, Paytm, Credit/Debit Cards, NetBanking).
+                - **Cash on Delivery (COD)**: Available with a **20% advance booking deposit** via UPI/Card to reserve artisan materials. The remaining 80% balance is collected upon doorstep delivery and inspection.
+                - **No-Cost EMI**: Available on select credit cards at checkout.
                 """.trimIndent()
             }
 
@@ -242,10 +294,10 @@ class GeminiChatService {
                 Hello and welcome to **Good Dream Home Decor**! 🌙
 
                 I am your **DreamCare AI Concierge**. How may I assist you with your home or sleep comfort today?
-                - Sizing or custom mattress dimensions
+                - Sizing or bespoke custom dimensions
                 - Selecting the right firmness for back support
                 - Cleaning & maintenance tips
-                - 100-Night Sleep Trial & 10-Year Warranty questions
+                - 25-Year SpringHaven™ Warranty & Delivery questions
                 - Order tracking & delivery details
                 """.trimIndent()
             }
@@ -257,7 +309,7 @@ class GeminiChatService {
                 Thank you for your question regarding *"$query"*. 
 
                 At Good Dream Home Decor, our mission is "Comfort for a Better Tomorrow". Here are a few ways we can help:
-                - **Need personalized guidance?** Our sleep advisors can assist you directly via chat or phone at **+91 80 4123 9999**.
+                - **Need personalized guidance?** Our sleep advisors can assist you directly via chat or phone at **+91 7014983696**.
                 - **Explore our Collections**: Browse the **SpringHaven Luxe** line under the Products tab to see detailed firmness specs, zoned support, and breathable cooling covers.
                 - **Custom Tailoring**: We accommodate bespoke bed heights and non-standard dimensions.
                 

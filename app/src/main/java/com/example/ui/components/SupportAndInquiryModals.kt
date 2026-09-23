@@ -422,7 +422,7 @@ private fun ComplaintsModal(
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Good Dream Home Decor Private Limited\nNo. 44, Good Dream Pavilion, Interior Boulevard,\nIndiranagar, Bengaluru, Karnataka 560038\nEmail: Lakshya190207@gmail.com",
+                                text = "GOOD DREAMS HOME DECOR PRIVATE LIMITED\nD-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan\nMarketed by: H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013\nEmail: gooddreamshomedecor@gmail.com",
                                 fontSize = 10.sp,
                                 color = TextSecondaryMuted,
                                 lineHeight = 14.sp
@@ -794,7 +794,7 @@ private fun PurchaseRewardsModal(
                 Spacer(modifier = Modifier.height(14.dp))
                 Text("Loyalty Perks", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(modifier = Modifier.height(6.dp))
-                Text("• 1 Coin per ₹10 spent on luxury catalog products\n• Complimentary white-glove assembly on all purchases\n• Priority appointment with senior sleep ergonomic consultants", fontSize = 11.5.sp, lineHeight = 16.sp, color = TextSecondaryMuted)
+                Text("• 1 Coin per ₹10 spent on luxury catalog products\n• Complimentary assembly on all purchases\n• Priority appointment with senior sleep ergonomic consultants", fontSize = 11.5.sp, lineHeight = 16.sp, color = TextSecondaryMuted)
             }
         },
         confirmButton = {
@@ -812,7 +812,7 @@ private fun MessageForYouModal(
 ) {
     val messages = listOf(
         "Welcome to Good Dream Home Decor! Explore our flagship SpringHaven 15\" series.",
-        "Festive Privilege: Complimentary silk pillows and white-glove setup with any master suite.",
+        "Festive Privilege: Complimentary silk pillows and room setup with any master suite.",
         "Your warranty certificates are saved automatically in your account hub."
     )
 

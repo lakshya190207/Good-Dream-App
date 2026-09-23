@@ -86,9 +86,9 @@ fun ProductComparisonModal(
                 value2 = p2?.dimensions ?: "78\" x 72\""
             ),
             ComparisonRow(
-                featureName = "Sleep Trial Period",
-                value1 = "100 Nights Risk-Free",
-                value2 = "100 Nights Risk-Free"
+                featureName = "Craftsmanship Standard",
+                value1 = "100% Handcrafted Luxury",
+                value2 = "100% Handcrafted Luxury"
             ),
             ComparisonRow(
                 featureName = "Warranty Guarantee",
@@ -103,8 +103,8 @@ fun ProductComparisonModal(
             ),
             ComparisonRow(
                 featureName = "Delivery Service",
-                value1 = if (p1?.isSpringhavenSeries == true) "White-Glove In-Room Assembly" else "Complimentary Express Delivery",
-                value2 = if (p2?.isSpringhavenSeries == true) "White-Glove In-Room Assembly" else "Complimentary Express Delivery"
+                value1 = if (p1?.isSpringhavenSeries == true) "In-Room Assembly & Setup" else "Complimentary Express Delivery",
+                value2 = if (p2?.isSpringhavenSeries == true) "In-Room Assembly & Setup" else "Complimentary Express Delivery"
             ),
             ComparisonRow(
                 featureName = "Motion Isolation",
@@ -359,7 +359,7 @@ fun ProductComparisonModal(
 
                     Spacer(Modifier.height(20.dp))
 
-                    // 100-Night Sleep Trial Guarantee Banner
+                    // SpringHaven Craftsmanship Guarantee Banner
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(14.dp),
@@ -377,7 +377,7 @@ fun ProductComparisonModal(
                             )
                             Spacer(Modifier.width(10.dp))
                             Text(
-                                text = "Both mattresses include Good Dream's 100-Night Risk-Free In-Home Trial with 100% money-back guarantee.",
+                                text = "Both mattresses include Good Dream's SpringHaven™ Structural Warranty with white-glove bedroom delivery.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )

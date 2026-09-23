@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -41,6 +42,8 @@ import com.example.data.model.*
 import com.example.ui.theme.*
 import com.example.util.InvoicePrinterHelper
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 /**
@@ -60,6 +63,9 @@ fun ProductCrmStudioModal(
     orders: List<OrderEntity> = emptyList(),
     inquiries: List<InquiryEntity> = emptyList(),
     crmUsers: List<CrmUserRecord> = emptyList(),
+    supportSessions: List<SupportChatSession> = emptyList(),
+    selectedChatSession: SupportChatSession? = null,
+    adminChatMessages: List<SupportChatMessage> = emptyList(),
     onSaveProduct: (ProductEntity) -> Unit,
     onDeleteProduct: (String) -> Unit,
     onResetCatalog: () -> Unit,
@@ -67,6 +73,11 @@ fun ProductCrmStudioModal(
     onUpdateInquiryStatus: (String, String) -> Unit = { _, _ -> },
     onSaveUser: (CrmUserRecord) -> Unit = {},
     onDeleteUser: (String) -> Unit = {},
+    onSelectChatSession: (SupportChatSession) -> Unit = {},
+    onSendAdminReply: (String, String) -> Unit = { _, _ -> },
+    onSendDirectMessage: (String, String, String, String?) -> Unit = { _, _, _, _ -> },
+    onResolveChat: (String) -> Unit = {},
+    onLoadSupportDesk: () -> Unit = {},
     onLogoutAdmin: () -> Unit = {},
     onClose: () -> Unit
 ) {
@@ -113,6 +124,8 @@ fun ProductCrmStudioModal(
     var inventoryFilterCategory by remember { mutableStateOf<String?>(null) }
     var productToDelete by remember { mutableStateOf<ProductEntity?>(null) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
+    var directMessageTargetUser by remember { mutableStateOf<CrmUserRecord?>(null) }
+    var showDirectMessageDialog by remember { mutableStateOf(false) }
 
     fun loadProductForEditing(product: ProductEntity) {
         editingProductId = product.id
@@ -372,6 +385,28 @@ fun ProductCrmStudioModal(
                             }
                         }
                     )
+                    Tab(
+                        selected = activeTab == 4,
+                        onClick = {
+                            activeTab = 4
+                            onLoadSupportDesk()
+                        },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.SupportAgent,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Support Desk (${supportSessions.size})",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        }
+                    )
                 }
 
                 // Tab 0: Add or Edit Product Form
@@ -421,7 +456,7 @@ fun ProductCrmStudioModal(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                items(categories) { cat ->
+                                items(categories, key = { it.id }) { cat ->
                                     val isSelected = cat.id == selectedCategoryId
                                     Surface(
                                         shape = RoundedCornerShape(10.dp),
@@ -616,7 +651,7 @@ fun ProductCrmStudioModal(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     modifier = Modifier.padding(vertical = 6.dp)
                                 ) {
-                                    itemsIndexed(imageList) { index, imgUrl ->
+                                    itemsIndexed(imageList, key = { index, imgUrl -> "$index-$imgUrl" }) { index, imgUrl ->
                                         Box(
                                             modifier = Modifier
                                                 .size(76.dp)
@@ -845,7 +880,7 @@ fun ProductCrmStudioModal(
                                     label = { Text("All Categories (${products.size})") }
                                 )
                             }
-                            items(categories) { cat ->
+                            items(categories, key = { it.id }) { cat ->
                                 val catCount = products.count { it.categoryId == cat.id }
                                 FilterChip(
                                     selected = inventoryFilterCategory == cat.id,
@@ -916,7 +951,27 @@ fun ProductCrmStudioModal(
                     CrmUsersTabContent(
                         crmUsers = crmUsers,
                         onSaveUser = onSaveUser,
-                        onDeleteUser = onDeleteUser
+                        onDeleteUser = onDeleteUser,
+                        onTriggerDirectMessage = { user ->
+                            directMessageTargetUser = user
+                            showDirectMessageDialog = true
+                        }
+                    )
+                }
+
+                // Tab 4: Live Support Desk
+                if (activeTab == 4) {
+                    LiveSupportDeskTabContent(
+                        supportSessions = supportSessions,
+                        selectedSession = selectedChatSession,
+                        messages = adminChatMessages,
+                        onSelectSession = onSelectChatSession,
+                        onSendReply = onSendAdminReply,
+                        onResolveChat = onResolveChat,
+                        onNewDirectMessage = {
+                            directMessageTargetUser = null
+                            showDirectMessageDialog = true
+                        }
                     )
                 }
             }
@@ -964,6 +1019,24 @@ fun ProductCrmStudioModal(
             },
             dismissButton = {
                 TextButton(onClick = { showResetConfirmDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showDirectMessageDialog) {
+        AdminDirectMessageDialog(
+            targetUser = directMessageTargetUser,
+            availableUsers = crmUsers,
+            orders = orders,
+            onDismiss = {
+                showDirectMessageDialog = false
+                directMessageTargetUser = null
+            },
+            onSend = { recipientEmail, recipientName, messageText, orderRef ->
+                onSendDirectMessage(recipientEmail, recipientName, messageText, orderRef)
+                showDirectMessageDialog = false
+                directMessageTargetUser = null
+                Toast.makeText(context, "Direct message dispatched with notification alert!", Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -1278,7 +1351,7 @@ private fun CrmOrdersAndLeadsView(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                     Text(
-                                        text = "• 80% Balance on Delivery: ₹$balance (Due upon White-Glove inspection)",
+                                        text = "• 80% Balance on Delivery: ₹$balance (Due upon delivery inspection)",
                                         fontSize = 11.sp,
                                         color = SatinGoldDark,
                                         fontWeight = FontWeight.SemiBold
@@ -1390,7 +1463,7 @@ private fun CrmOrdersAndLeadsView(
             Spacer(modifier = Modifier.height(6.dp))
             val filterOptions = listOf("ALL", "NEEDS", "WARRANTY", "REPAIR", "COMPLAINT", "FEEDBACK")
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(filterOptions) { filter ->
+                items(filterOptions, key = { it }) { filter ->
                     FilterChip(
                         selected = inquiryTypeFilter == filter,
                         onClick = { inquiryTypeFilter = filter },
@@ -1587,7 +1660,8 @@ private fun CrmOrdersAndLeadsView(
 private fun CrmUsersTabContent(
     crmUsers: List<CrmUserRecord>,
     onSaveUser: (CrmUserRecord) -> Unit,
-    onDeleteUser: (String) -> Unit
+    onDeleteUser: (String) -> Unit,
+    onTriggerDirectMessage: (CrmUserRecord) -> Unit = {}
 ) {
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
@@ -1721,7 +1795,7 @@ private fun CrmUsersTabContent(
         item {
             val filters = listOf("ALL" to "All (${crmUsers.size})", "VIP" to "Registered VIP", "ORDERS" to "Order Clients", "LEADS" to "Leads")
             LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                items(filters) { (key, label) ->
+                items(filters, key = { it.first }) { (key, label) ->
                     FilterChip(
                         selected = selectedFilter == key,
                         onClick = { selectedFilter = key },
@@ -1813,6 +1887,7 @@ private fun CrmUsersTabContent(
                                             CrmUserType.REGISTERED_VIP -> SatinGoldAccent.copy(alpha = 0.2f)
                                             CrmUserType.ORDER_CLIENT -> ForestGreenContainer
                                             CrmUserType.INQUIRY_LEAD -> MaterialTheme.colorScheme.surfaceVariant
+                                            CrmUserType.ADMIN -> SatinGoldAccent.copy(alpha = 0.4f)
                                         }
                                     ) {
                                         Text(
@@ -1823,6 +1898,7 @@ private fun CrmUsersTabContent(
                                                 CrmUserType.REGISTERED_VIP -> ForestGreenDark
                                                 CrmUserType.ORDER_CLIENT -> ForestGreenDark
                                                 CrmUserType.INQUIRY_LEAD -> MaterialTheme.colorScheme.onSurfaceVariant
+                                                CrmUserType.ADMIN -> ForestGreenDark
                                             },
                                             modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                         )
@@ -1845,6 +1921,9 @@ private fun CrmUsersTabContent(
                             }
 
                             // Actions
+                            IconButton(onClick = { onTriggerDirectMessage(user) }) {
+                                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Direct Message Customer", tint = ForestGreenDark, modifier = Modifier.size(18.dp))
+                            }
                             IconButton(onClick = { userToEdit = user }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Edit User", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                             }
@@ -1948,8 +2027,20 @@ private fun CrmUsersTabContent(
                             // Quick Contact Actions
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Button(
+                                    onClick = { onTriggerDirectMessage(user) },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = ForestGreenDark)
+                                ) {
+                                    Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(13.dp), tint = SatinGoldAccent)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Push Notification Message", fontSize = 11.sp, color = Color.White)
+                                }
+
                                 OutlinedButton(
                                     onClick = {
                                         val emailIntent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:${user.email}")).apply {
@@ -2130,3 +2221,644 @@ private fun AddOrEditUserDialog(
         }
     )
 }
+
+@Composable
+private fun LiveSupportDeskTabContent(
+    supportSessions: List<SupportChatSession>,
+    selectedSession: SupportChatSession?,
+    messages: List<SupportChatMessage>,
+    onSelectSession: (SupportChatSession) -> Unit,
+    onSendReply: (String, String) -> Unit,
+    onResolveChat: (String) -> Unit,
+    onNewDirectMessage: () -> Unit = {}
+) {
+    var replyText by remember { mutableStateOf("") }
+    val msgTimeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(12.dp)
+    ) {
+        if (supportSessions.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.SupportAgent,
+                        contentDescription = null,
+                        modifier = Modifier.size(56.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "No Active Support Inquiries",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Customer live chat conversations will stream here in real time.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onNewDirectMessage,
+                        colors = ButtonDefaults.buttonColors(containerColor = ForestGreenDark),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(14.dp), tint = SatinGoldAccent)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Direct Message Any Customer", fontSize = 12.sp, color = Color.White)
+                    }
+                }
+            }
+        } else {
+            // Master-Detail Split: Carousel list of threads, bottom detailed chat
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 4.dp, end = 4.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "ACTIVE CHAT SESSIONS (${supportSessions.size})",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        letterSpacing = 1.2.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = SatinGoldDark
+                )
+                TextButton(
+                    onClick = onNewDirectMessage,
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(12.dp), tint = ForestGreenDark)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("+ Direct Message Customer", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = ForestGreenDark)
+                }
+            }
+
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+            ) {
+                items(supportSessions, key = { it.id }) { session ->
+                    val isSelected = selectedSession?.id == session.id
+                    val isResolved = session.status.equals("RESOLVED", ignoreCase = true)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(
+                            1.dp,
+                            if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        shadowElevation = if (isSelected) 3.dp else 1.dp,
+                        modifier = Modifier
+                            .width(220.dp)
+                            .clickable { onSelectSession(session) }
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = session.customerName.ifBlank { "Guest" },
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(
+                                            if (isResolved) TextSecondaryMuted.copy(alpha = 0.2f)
+                                            else StatusSuccess.copy(alpha = 0.2f)
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = session.status,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isResolved) TextSecondaryMuted else StatusSuccess
+                                    )
+                                }
+                            }
+
+                            if (session.customerEmail.isNotBlank()) {
+                                Text(
+                                    text = session.customerEmail,
+                                    fontSize = 10.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = session.lastMessage,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Conversation Pane
+            if (selectedSession == null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Tap a customer session above to open the live conversation.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Thread Header
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Chat with ${selectedSession.customerName}",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                    val orderNote = selectedSession.orderReference?.let { " • Order: $it" } ?: ""
+                                    Text(
+                                        text = "${selectedSession.customerEmail}$orderNote",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                if (!selectedSession.status.equals("RESOLVED", ignoreCase = true)) {
+                                    FilledTonalButton(
+                                        onClick = { onResolveChat(selectedSession.id) },
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Resolve", fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Thread Messages
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (messages.isEmpty()) {
+                                item {
+                                    Text(
+                                        text = "Waiting for customer messages...",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
+
+                            items(messages, key = { it.id }) { msg ->
+                                val isAgent = msg.senderType == SupportSenderType.SUPPORT_AGENT
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = if (isAgent) Arrangement.End else Arrangement.Start
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(
+                                            topStart = 12.dp,
+                                            topEnd = 12.dp,
+                                            bottomStart = if (isAgent) 12.dp else 2.dp,
+                                            bottomEnd = if (isAgent) 2.dp else 12.dp
+                                        ),
+                                        color = if (isAgent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                                        modifier = Modifier.widthIn(max = 280.dp)
+                                    ) {
+                                        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                                            Text(
+                                                text = if (isAgent) "Support Specialist" else msg.senderName.ifBlank { "Customer" },
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isAgent) SatinGoldAccent else MaterialTheme.colorScheme.primary
+                                            )
+                                            Text(
+                                                text = msg.text,
+                                                fontSize = 12.5.sp,
+                                                color = if (isAgent) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = msgTimeFormat.format(Date(msg.timestamp)),
+                                                fontSize = 9.sp,
+                                                color = if (isAgent) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.align(Alignment.End)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Reply Input
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface,
+                            shadowElevation = 4.dp,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = replyText,
+                                    onValueChange = { replyText = it },
+                                    placeholder = { Text("Type reply to customer...", fontSize = 12.5.sp) },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(20.dp),
+                                    maxLines = 3
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                IconButton(
+                                    onClick = {
+                                        if (replyText.isNotBlank()) {
+                                            val text = replyText.trim()
+                                            replyText = ""
+                                            onSendReply(selectedSession.id, text)
+                                        }
+                                    },
+                                    enabled = replyText.isNotBlank()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "Send Reply",
+                                        tint = if (replyText.isNotBlank()) MaterialTheme.colorScheme.primary else TextSecondaryMuted
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AdminDirectMessageDialog(
+    targetUser: CrmUserRecord?,
+    availableUsers: List<CrmUserRecord>,
+    orders: List<OrderEntity>,
+    onDismiss: () -> Unit,
+    onSend: (recipientEmail: String, recipientName: String, messageText: String, orderReference: String?) -> Unit
+) {
+    var recipientEmail by remember { mutableStateOf(targetUser?.email ?: "") }
+    var recipientName by remember { mutableStateOf(targetUser?.name ?: "") }
+    var messageText by remember { mutableStateOf("") }
+    var selectedOrderRef by remember { mutableStateOf<String?>(null) }
+    var showUserPickerDropdown by remember { mutableStateOf(false) }
+
+    // User's relevant orders
+    val matchingOrders = remember(recipientEmail, orders) {
+        if (recipientEmail.isBlank()) emptyList()
+        else orders.filter { it.customerEmail.equals(recipientEmail.trim(), ignoreCase = true) }
+    }
+
+    val luxuryPresets = remember(recipientName) {
+        val displayName = recipientName.ifBlank { "Valued Client" }
+        listOf(
+            "Order Dispatched" to "Dear $displayName, your handcrafted sleep piece has completed final artisan inspection in Jaipur and has been dispatched with live delivery tracking.",
+            "Artisan Tailoring" to "Greetings $displayName, our Jaipur master craftsmen are currently handcrafting your bespoke commission. We will share your dispatch tracking shortly.",
+            "Delivery Scheduling" to "Hello $displayName, our logistics concierge is preparing your shipment. Please let us know your preferred delivery window and date.",
+            "Sleep Check-in" to "Dear $displayName, thank you for welcoming Good Dream into your sanctuary. How is your sleep experience? Our sleep specialists are here for any guidance."
+        )
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.90f),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(20.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(ForestGreenDark),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                tint = SatinGoldAccent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Direct Concierge Message",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Push direct to customer's notification panel",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close")
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                // Informational Notice Banner
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = ForestGreenContainer.copy(alpha = 0.35f),
+                    border = BorderStroke(1.dp, ForestGreenDark.copy(alpha = 0.2f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = ForestGreenDark,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "When sent, this message posts an immediate notification in the user's phone notification panel. Tapping the notification opens their in-app live chat so they can reply seamlessly.",
+                            fontSize = 11.5.sp,
+                            color = ForestGreenDark,
+                            lineHeight = 16.sp
+                        )
+                    }
+                }
+
+                // Recipient Info
+                Text(
+                    text = "RECIPIENT CLIENT",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = SatinGoldDark
+                )
+
+                if (targetUser == null && availableUsers.isNotEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { showUserPickerDropdown = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (recipientEmail.isNotBlank()) "$recipientName ($recipientEmail)" else "Select client from CRM directory",
+                                fontSize = 12.5.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showUserPickerDropdown,
+                            onDismissRequest = { showUserPickerDropdown = false },
+                            modifier = Modifier.fillMaxWidth(0.85f)
+                        ) {
+                            availableUsers.forEach { user ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(user.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Text(user.email, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    },
+                                    onClick = {
+                                        recipientEmail = user.email
+                                        recipientName = user.name
+                                        showUserPickerDropdown = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = recipientEmail,
+                    onValueChange = { recipientEmail = it },
+                    label = { Text("Customer Email (Identifies Chat Session)") },
+                    placeholder = { Text("client@example.com") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    singleLine = true,
+                    enabled = targetUser == null
+                )
+
+                OutlinedTextField(
+                    value = recipientName,
+                    onValueChange = { recipientName = it },
+                    label = { Text("Customer Name") },
+                    placeholder = { Text("Client Full Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    singleLine = true,
+                    enabled = targetUser == null
+                )
+
+                // Associated Order (Optional)
+                if (matchingOrders.isNotEmpty()) {
+                    Text(
+                        text = "ATTACH ORDER CONTEXT (OPTIONAL)",
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                        color = SatinGoldDark
+                    )
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(matchingOrders, key = { it.id }) { order ->
+                            val isSelected = selectedOrderRef == order.id
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedOrderRef = if (isSelected) null else order.id },
+                                label = {
+                                    Text(
+                                        text = "${order.id.takeLast(8)} • ${order.status}",
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Luxury Quick Presets
+                Text(
+                    text = "LUXURY CONCIERGE PRESETS",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = SatinGoldDark
+                )
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(luxuryPresets, key = { it.first }) { (label, presetText) ->
+                        OutlinedButton(
+                            onClick = { messageText = presetText },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, ForestGreenDark.copy(alpha = 0.4f))
+                        ) {
+                            Text(label, fontSize = 11.sp, color = ForestGreenDark, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+
+                // Custom Message Input
+                Text(
+                    text = "MESSAGE CONTENT",
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                    color = SatinGoldDark
+                )
+
+                OutlinedTextField(
+                    value = messageText,
+                    onValueChange = { messageText = it },
+                    placeholder = { Text("Compose bespoke concierge message to user...") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(130.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    maxLines = 6
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Button(
+                        onClick = {
+                            if (recipientEmail.isNotBlank() && messageText.isNotBlank()) {
+                                onSend(recipientEmail.trim(), recipientName.trim(), messageText.trim(), selectedOrderRef)
+                            }
+                        },
+                        enabled = recipientEmail.isNotBlank() && messageText.isNotBlank(),
+                        colors = ButtonDefaults.buttonColors(containerColor = ForestGreenDark),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = null,
+                            tint = SatinGoldAccent,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Send & Dispatch Notification",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+

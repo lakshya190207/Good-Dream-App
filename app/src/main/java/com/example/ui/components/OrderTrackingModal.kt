@@ -52,7 +52,8 @@ fun OrderTrackingModal(
     isUserLoggedIn: Boolean = false,
     loggedInUserEmail: String? = null,
     isAdmin: Boolean = false,
-    supportPhone: String = "+91 80 4123 9999",
+    supportPhone: String = "+91 7014983696",
+    onOpenLiveChat: (String) -> Unit = {},
     onOpenLogin: () -> Unit = {},
     onClose: () -> Unit,
     modifier: Modifier = Modifier
@@ -212,7 +213,7 @@ fun OrderTrackingModal(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "White-Glove Order Tracker",
+                                text = "Order Tracker",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -668,7 +669,7 @@ fun OrderTrackingModal(
                         Spacer(Modifier.height(16.dp))
                     }
 
-                    // Contact White-Glove Concierge Card
+                    // Contact Delivery Support Card
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -683,7 +684,7 @@ fun OrderTrackingModal(
                             )
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "Call our dedicated white-glove logistics coordinator directly for time-slot preferences.",
+                                text = "Call our dedicated logistics coordinator directly for time-slot preferences.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -705,7 +706,7 @@ fun OrderTrackingModal(
 
                                 OutlinedButton(
                                     onClick = {
-                                        val url = "https://api.whatsapp.com/send?phone=+918041239999&text=Inquiry%20regarding%20delivery%20schedule%20for%20order%20$activeTrackingId"
+                                        val url = "https://api.whatsapp.com/send?phone=+917014983696&text=Inquiry%20regarding%20delivery%20schedule%20for%20order%20$activeTrackingId"
                                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                                         try {
                                             context.startActivity(intent)
@@ -721,6 +722,18 @@ fun OrderTrackingModal(
                                     Spacer(Modifier.width(6.dp))
                                     Text("WhatsApp", fontSize = 12.sp)
                                 }
+                            }
+
+                            Spacer(Modifier.height(8.dp))
+
+                            OutlinedButton(
+                                onClick = { onOpenLiveChat(activeTrackingId) },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.SupportAgent, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Live Chat with Care Specialist", fontSize = 12.sp)
                             }
                         }
                     }

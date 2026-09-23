@@ -40,7 +40,7 @@ data class CartMilestone(
 val CART_MILESTONES = listOf(
     CartMilestone(
         threshold = 25000.0,
-        title = "White-Glove Installation",
+        title = "Free Delivery & Setup",
         shortLabel = "Free Setup",
         subtitle = "Complimentary room placement & old mattress removal",
         valueLabel = "₹2,500 Value",
@@ -66,7 +66,7 @@ val CART_MILESTONES = listOf(
 
 /**
  * Luxury Gamified Cart Milestone & Complimentary Gift Progress Meter.
- * Displays real-time progress toward unlocking White-Glove Setup, Mulberry Silk Masks,
+ * Displays real-time progress toward unlocking Free Delivery & Setup, Mulberry Silk Masks,
  * and Orthopedic Contour Pillows with smooth animations and dynamic urgency teasers.
  */
 @Composable

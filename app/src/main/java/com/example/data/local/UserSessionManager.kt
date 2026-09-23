@@ -21,6 +21,19 @@ class UserSessionManager(context: Context) {
 
     private val prefs: SharedPreferences = createEncryptedPreferencesWithRecovery(context)
 
+    init {
+        // One-time security hygiene: Purge any legacy unencrypted SharedPreferences
+        try {
+            val fallback = context.getSharedPreferences(PREFS_NAME_FALLBACK, Context.MODE_PRIVATE)
+            if (fallback.all.isNotEmpty()) {
+                fallback.edit().clear().apply()
+                Timber.i("Purged insecure cleartext fallback SharedPreferences.")
+            }
+        } catch (e: Exception) {
+            Timber.w(e, "Could not clear legacy fallback SharedPreferences")
+        }
+    }
+
     fun isUserLoggedIn(): Boolean {
         return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
     }
@@ -34,10 +47,11 @@ class UserSessionManager(context: Context) {
     }
 
     fun saveUserSession(email: String, name: String) {
+        val cleanEmail = email.trim().lowercase()
         prefs.edit()
             .putBoolean(KEY_IS_LOGGED_IN, true)
-            .putString(KEY_USER_EMAIL, email)
-            .putString(KEY_USER_NAME, name)
+            .putString(KEY_USER_EMAIL, cleanEmail)
+            .putString(KEY_USER_NAME, name.trim())
             .apply()
     }
 
@@ -55,6 +69,7 @@ class UserSessionManager(context: Context) {
     fun registerUser(email: String, name: String, passcode: String) {
         val cleanEmail = email.trim().lowercase()
         val hashedPass = hashPasscode(passcode.trim(), cleanEmail)
+        
         prefs.edit()
             .putBoolean(KEY_IS_LOGGED_IN, true)
             .putString(KEY_USER_EMAIL, cleanEmail)
@@ -71,7 +86,8 @@ class UserSessionManager(context: Context) {
      */
     fun verifyUserPasscode(email: String, enteredPasscode: String): Boolean {
         val cleanEmail = email.trim().lowercase()
-        val storedHash = prefs.getString(KEY_PREFIX_PASSCODE + cleanEmail, null) ?: return false
+        val storedHash = prefs.getString(KEY_PREFIX_PASSCODE + cleanEmail, null)
+            ?: return false
         val cleanPasscode = enteredPasscode.trim()
 
         if (storedHash.startsWith("\$pbkdf2\$")) {
@@ -108,9 +124,42 @@ class UserSessionManager(context: Context) {
         return prefs.getString(KEY_PREFIX_NAME + cleanEmail, null)
     }
 
+    fun getHashedPasscode(email: String): String? {
+        val cleanEmail = email.trim().lowercase()
+        return prefs.getString(KEY_PREFIX_PASSCODE + cleanEmail, null)
+    }
+
     fun hasUserPasscode(email: String): Boolean {
         val cleanEmail = email.trim().lowercase()
         return prefs.contains(KEY_PREFIX_PASSCODE + cleanEmail)
+    }
+
+    /**
+     * Hydrates credentials and profile from Room Database or Cloud Firestore so offline
+     * passcode checks and session restoration work instantly even after an app clear or new device setup.
+     */
+    fun restoreUserFromDatabase(
+        email: String,
+        name: String,
+        phone: String = "",
+        hashedPasscode: String,
+        notes: String = "",
+        addressesJson: String = "[]"
+    ) {
+        val cleanEmail = email.trim().lowercase()
+        val editor = prefs.edit()
+            .putString(KEY_PREFIX_NAME + cleanEmail, name.trim())
+            .putString(KEY_PREFIX_PASSCODE + cleanEmail, hashedPasscode)
+        if (phone.isNotBlank()) {
+            editor.putString(KEY_PREFIX_PHONE + cleanEmail, phone.trim())
+        }
+        if (notes.isNotBlank()) {
+            editor.putString(KEY_PREFIX_NOTES + cleanEmail, notes.trim())
+        }
+        if (addressesJson.isNotBlank() && addressesJson != "[]") {
+            editor.putString(KEY_PREFIX_ADDRESSES + cleanEmail, addressesJson)
+        }
+        editor.apply()
     }
 
     fun getSavedAddresses(email: String): List<SavedAddress> {
@@ -130,9 +179,9 @@ class UserSessionManager(context: Context) {
                         flatHouseNo = obj.optString("flatHouseNo", ""),
                         streetLocality = obj.optString("streetLocality", ""),
                         landmark = obj.optString("landmark", ""),
-                        city = obj.optString("city", "Bengaluru"),
-                        state = obj.optString("state", "Karnataka"),
-                        pincode = obj.optString("pincode", "560001"),
+                        city = obj.optString("city", "Jaipur"),
+                        state = obj.optString("state", "Rajasthan"),
+                        pincode = obj.optString("pincode", "302039"),
                         isDefault = obj.optBoolean("isDefault", false)
                     )
                 )
@@ -196,6 +245,11 @@ class UserSessionManager(context: Context) {
         prefs.edit().putString(KEY_PREFIX_ADDRESSES + cleanEmail, jsonArray.toString()).apply()
     }
 
+    fun getAddressesJson(email: String): String {
+        val cleanEmail = email.trim().lowercase()
+        return prefs.getString(KEY_PREFIX_ADDRESSES + cleanEmail, "[]") ?: "[]"
+    }
+
     fun clearUserSession() {
         prefs.edit()
             .remove(KEY_IS_LOGGED_IN)
@@ -234,8 +288,8 @@ class UserSessionManager(context: Context) {
             val email = key.removePrefix(KEY_PREFIX_NAME)
             val name = allEntries[key] as? String ?: "Sanctuary Client"
             val addresses = getSavedAddresses(email)
-            val phone = addresses.firstOrNull()?.phoneNumber ?: prefs.getString(KEY_PREFIX_PHONE + email, "") ?: ""
-            val notes = prefs.getString(KEY_PREFIX_NOTES + email, "") ?: ""
+            val phone = addresses.firstOrNull()?.phoneNumber ?: prefs.getString(KEY_PREFIX_PHONE + email, null) ?: ""
+            val notes = prefs.getString(KEY_PREFIX_NOTES + email, null) ?: ""
             users.add(
                 CrmUserRecord(
                     id = email,
@@ -265,6 +319,26 @@ class UserSessionManager(context: Context) {
             editor.putString(KEY_PREFIX_PASSCODE + cleanEmail, defaultPasscode)
         }
         editor.apply()
+    }
+
+    fun getAdminLockoutUntil(): Long = prefs.getLong(KEY_ADMIN_LOCKOUT_UNTIL, 0L)
+    fun setAdminLockoutUntil(epochMs: Long) {
+        prefs.edit().putLong(KEY_ADMIN_LOCKOUT_UNTIL, epochMs).apply()
+    }
+
+    fun getAdminFailedAttempts(): Int = prefs.getInt(KEY_ADMIN_FAILED_ATTEMPTS, 0)
+    fun setAdminFailedAttempts(attempts: Int) {
+        prefs.edit().putInt(KEY_ADMIN_FAILED_ATTEMPTS, attempts).apply()
+    }
+
+    fun getCustomerOtpLockoutUntil(): Long = prefs.getLong(KEY_CUSTOMER_OTP_LOCKOUT_UNTIL, 0L)
+    fun setCustomerOtpLockoutUntil(epochMs: Long) {
+        prefs.edit().putLong(KEY_CUSTOMER_OTP_LOCKOUT_UNTIL, epochMs).apply()
+    }
+
+    fun getCustomerOtpFailedAttempts(): Int = prefs.getInt(KEY_CUSTOMER_OTP_FAILED_ATTEMPTS, 0)
+    fun setCustomerOtpFailedAttempts(attempts: Int) {
+        prefs.edit().putInt(KEY_CUSTOMER_OTP_FAILED_ATTEMPTS, attempts).apply()
     }
 
     private fun hashPasscode(passcode: String, saltIdentifier: String): String {
@@ -304,6 +378,10 @@ class UserSessionManager(context: Context) {
         private const val KEY_PREFIX_NOTES = "notes_user_"
         private const val KEY_PREFIX_ADDRESSES = "addresses_user_"
         private const val KEY_FCM_TOKEN = "key_fcm_token"
+        private const val KEY_ADMIN_LOCKOUT_UNTIL = "key_admin_lockout_until"
+        private const val KEY_ADMIN_FAILED_ATTEMPTS = "key_admin_failed_attempts"
+        private const val KEY_CUSTOMER_OTP_LOCKOUT_UNTIL = "key_customer_otp_lockout_until"
+        private const val KEY_CUSTOMER_OTP_FAILED_ATTEMPTS = "key_customer_otp_failed_attempts"
 
         private fun createEncryptedPreferencesWithRecovery(context: Context): SharedPreferences {
             return try {
@@ -356,9 +434,9 @@ data class SavedAddress(
     val flatHouseNo: String,
     val streetLocality: String,
     val landmark: String = "",
-    val city: String = "Bengaluru",
-    val state: String = "Karnataka",
-    val pincode: String = "560001",
+    val city: String = "Jaipur",
+    val state: String = "Rajasthan",
+    val pincode: String = "302039",
     val isDefault: Boolean = false
 )
 

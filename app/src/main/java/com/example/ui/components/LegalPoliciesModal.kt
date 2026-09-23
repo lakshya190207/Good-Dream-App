@@ -54,16 +54,16 @@ import com.example.ui.theme.*
  *    - Warranty Transfer rules & Claim Process requiring original bill and service card
  * 2. Privacy Policy & Data Safety (Google Play compliant & DPDP Act)
  * 3. Cookie, Local Identifiers & Device Storage Policy (Google Play compliant)
- * 4. 100-Night Trial, Returns & Refund Policy
+ * 4. Returns, Replacement & Refund Policy
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LegalPoliciesModal(
-    initialTab: Int = 0, // 0: 25-Yr Terms, 1: Privacy Policy, 2: Cookie Policy, 3: Refund Policy
+    initialTab: Int = 0, // 0: 25-Yr Terms, 1: Privacy Policy, 2: Cookie Policy, 3: Refund Policy, 4: Shipping Policy
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
-    var selectedTab by remember { mutableIntStateOf(initialTab.coerceIn(0, 3)) }
+    var selectedTab by remember { mutableIntStateOf(initialTab.coerceIn(0, 4)) }
 
     Surface(
         modifier = Modifier
@@ -139,7 +139,7 @@ fun LegalPoliciesModal(
                                         }
                                     }
                                     Text(
-                                        text = "25-Yr Terms • Privacy • Cookies • Refund Policy",
+                                        text = "25-Yr Terms • Privacy • Cookies • Refund • Shipping Policy",
                                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -226,6 +226,18 @@ fun LegalPoliciesModal(
                                     )
                                 }
                             )
+                            Tab(
+                                selected = selectedTab == 4,
+                                onClick = { selectedTab = 4 },
+                                text = {
+                                    Text(
+                                        text = "Shipping Policy",
+                                        fontSize = 12.sp,
+                                        fontWeight = if (selectedTab == 4) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (selectedTab == 4) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            )
                         }
                     }
                 }
@@ -238,17 +250,18 @@ fun LegalPoliciesModal(
                 ) {
                     when (selectedTab) {
                         0 -> TermsAndWarrantyContent(onContactSupport = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://api.whatsapp.com/send?phone=+918041239999&text=Hello%20SpringHaven!%20I%20have%20an%20inquiry%20regarding%20the%2025-Year%20Warranty%20and%20Service%20Schedule."))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://api.whatsapp.com/send?phone=+917014983696&text=Hello%20SpringHaven!%20I%20have%20an%20inquiry%20regarding%20the%2025-Year%20Warranty%20and%20Service%20Schedule."))
                             try {
                                 context.startActivity(intent)
                             } catch (e: Exception) {
-                                val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+918041239999"))
+                                val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:+917014983696"))
                                 context.startActivity(dialIntent)
                             }
                         })
                         1 -> PrivacyPolicyContent()
                         2 -> CookiePolicyContent()
                         3 -> RefundPolicyContent()
+                        4 -> ShippingPolicyContent()
                     }
                 }
 
@@ -281,11 +294,11 @@ fun LegalPoliciesModal(
 
                         Button(
                             onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://api.whatsapp.com/send?phone=+918041239999&text=Hello%20SpringHaven%20Support!%20I%20would%20like%20assistance%20with%20my%20warranty%20and%20service%20card."))
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://api.whatsapp.com/send?phone=+917014983696&text=Hello%20SpringHaven%20Support!%20I%20would%20like%20assistance%20with%20my%20warranty%20and%20service%20card."))
                                 try {
                                     context.startActivity(intent)
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Support Desk: +91 80 4123 9999", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Support Desk: +91 7014983696", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -750,7 +763,7 @@ private fun PrivacyPolicyContent() {
                 bullets = listOf(
                     "Mandatory Account Authentication: Prior to filling out or submitting bespoke inquiries, repair tickets, customer feedback, official complaints, or warranty activations, users must sign in via Email OTP or salted Passcode. This guarantees that all submitted data is verifiably linked to an authenticated identity, preventing unauthorized or spoofed records.",
                     "Strict Customer Data Isolation: Every customer's records (inquiries, repair requests, feedback submissions, orders, and warranty certificates) are strictly partitioned. Users can only access, track, and view their own personal records. Cross-account data queries are cryptographically blocked at both the database and repository layers.",
-                    "Executive Privilege Safeguards: Only authenticated executive administrators (using dual-factor verified admin credentials) can access aggregated operational records within the Executive Studio solely for order fulfillment and white-glove concierge management."
+                    "Executive Privilege Safeguards: Only authenticated executive administrators (using dual-factor verified admin credentials) can access aggregated operational records within the Executive Studio solely for order fulfillment and customer concierge management."
                 )
             )
         }
@@ -764,7 +777,7 @@ private fun PrivacyPolicyContent() {
                     "Warranty & Guarantee Enrollment: Tax invoice/bill numbers, purchase/delivery dates, law label mattress serial/barcode numbers, and customer contact details to issue and enforce the immutable 25-Year Guarantee.",
                     "Service & Repair Tickets: Physical service address, mattress condition descriptions, issue photographs or notes, and technician scheduling preferences for doorstep inspections.",
                     "Concierge Feedback & Resolution: Customer satisfaction ratings, service evaluations, and grievance details submitted to uphold luxury service benchmarks.",
-                    "Order Fulfillment Data: White-glove shipping addresses, selected sleep sanctuary accessories, order reference IDs, and payment status tokens for logistics dispatch.",
+                    "Order Fulfillment Data: Delivery shipping addresses, selected sleep sanctuary accessories, order reference IDs, and payment status tokens for logistics dispatch.",
                     "Device & Performance Diagnostics: Non-identifying device telemetry (operating system build, crash reports, frame rendering metrics) solely to maintain 60/120fps fluid performance without collecting PII."
                 )
             )
@@ -774,7 +787,7 @@ private fun PrivacyPolicyContent() {
             PolicyDisclosureCard(
                 title = "3. How Your Data is Utilized",
                 bullets = listOf(
-                    "Order Delivery & White-Glove Dispatch: Coordinating factory craftsmanship, dispatching logistics partners, and streaming real-time delivery milestones.",
+                    "Order Delivery & Dispatch: Coordinating factory craftsmanship, dispatching logistics partners, and streaming real-time delivery milestones.",
                     "25-Year Guarantee Verification: Maintaining the digital service ledger for scheduled 5-year doorstep inspection visits, pro-rata component swaps, and loyalty trade-in credits.",
                     "VIP Concierge Assistance: Facilitating authenticated resolution through direct phone, in-app messaging, or official WhatsApp concierge support.",
                     "Zero Third-Party Commercial Sale: Good Dream and SpringHaven will NEVER sell, lease, rent, trade, or monetize your personal or behavioral data to third-party advertisers or data brokers under any circumstances."
@@ -801,7 +814,7 @@ private fun PrivacyPolicyContent() {
                 bullets = listOf(
                     "Full User Sovereignty: Under Google Play Store User Data rules and the Digital Personal Data Protection Act, you retain unrestricted control over your stored data.",
                     "Instant Local Data Purge: You can purge all cached records, active sessions, cart items, and custom preferences at any moment via the 'Delete Account & Clear Data' action in Account Settings.",
-                    "Permanent Remote Deletion: To permanently delete all historical inquiries, warranty certificates, or customer service archives from our cloud databases, contact Lakshya190207@gmail.com or submit an authenticated ticket.",
+                    "Permanent Remote Deletion: To permanently delete all historical inquiries, warranty certificates, or customer service archives from our cloud databases, contact gooddreamshomedecor@gmail.com or submit an authenticated ticket.",
                     "Data Rectification: You may update or correct your prefilled contact details and shipping addresses directly within your account profile at any time."
                 )
             )
@@ -868,7 +881,7 @@ private fun PrivacyPolicyContent() {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Text("Officer Name:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.width(110.dp))
-                                Text("Mr. Rajeshwar Sharma", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface)
+                                Text("Mr. Deepak Sharma", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface)
                             }
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Text("Designation:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.width(110.dp))
@@ -876,19 +889,23 @@ private fun PrivacyPolicyContent() {
                             }
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Text("Entity Name:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.width(110.dp))
-                                Text("Good Dream Luxury Home Decor Pvt. Ltd.", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface)
+                                Text("GOOD DREAMS HOME DECOR PRIVATE LIMITED", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface)
                             }
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Text("Physical Address:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.width(110.dp))
-                                Text("Plot 42, KIADB Industrial Area, Phase II, Whitefield, Bengaluru, Karnataka - 560066, India", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface)
+                                Text("D-4, VIJAY VIHAR COLONY, NAYA KHEDA, Amba Bari, Jaipur, Jaipur- 302039, Rajasthan, India", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth()) {
+                                Text("Marketed by:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.width(110.dp))
+                                Text("H P PRODUCTS, Address: P.NO. 4, BADHARNA, BAJRANG VIHAR 5, Jaipur, Rajasthan, 302013", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface)
                             }
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Text("Official Email:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.width(110.dp))
-                                Text("grievance@gooddream.in", fontSize = 11.5.sp, color = ForestGreenPrimary, fontWeight = FontWeight.SemiBold)
+                                Text("gooddreamshomedecor@gmail.com", fontSize = 11.5.sp, color = ForestGreenPrimary, fontWeight = FontWeight.SemiBold)
                             }
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Text("Telephone / Phone:", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.width(110.dp))
-                                Text("+91 80 4123 9999 (Mon–Sat, 10 AM–6 PM IST)", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface)
+                                Text("+91 7014983696 (Mon–Sat, 10 AM–6 PM IST)", fontSize = 11.5.sp, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
@@ -994,7 +1011,7 @@ private fun CookiePolicyContent() {
 }
 
 // -------------------------------------------------------------------------------------
-// TAB 3: 100-NIGHT TRIAL & REFUND POLICY
+// TAB 3: RETURNS, REPLACEMENT & REFUND POLICY
 // -------------------------------------------------------------------------------------
 @Composable
 private fun RefundPolicyContent() {
@@ -1019,8 +1036,8 @@ private fun RefundPolicyContent() {
                     Icon(Icons.AutoMirrored.Filled.AssignmentReturn, contentDescription = null, tint = SatinGoldDark, modifier = Modifier.size(28.dp))
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text("100-Night Sleep Sanctuary Trial & Refund Terms", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
-                        Text("Experience our master craftsmanship risk-free in the comfort of your bedroom.", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Returns, Replacement & Refund Terms", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text("White-glove bedroom inspection, pre-dispatch cancellation, and comprehensive warranty coverage.", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
@@ -1028,11 +1045,11 @@ private fun RefundPolicyContent() {
 
         item {
             PolicyDisclosureCard(
-                title = "1. The 100-Night Sleep Trial Program",
+                title = "1. White-Glove In-Bedroom Inspection & Replacement",
                 bullets = listOf(
-                    "Eligible Standard Mattresses: Applies to all standard-sized Good Dream and SpringHaven mattresses.",
-                    "21-Night Adjustment Period: Because your spinal column and posture require 3 to 4 weeks to adjust to new ergonomic multi-zone support, we require sleeping on your mattress for at least 21 nights before initiating a return.",
-                    "Returns up to 100 Nights: If you remain unsatisfied after 21 nights, you may request a 100% mattress collection and refund before day 100."
+                    "In-Room Inspection: When our technician unboxes and positions your mattress in your bedroom, you personally inspect its comfort and craftsmanship.",
+                    "Immediate Replacement: If any transit damage, fabric flaw, or manufacturing blemish is identified during delivery, an immediate exchange is arranged at zero extra charge.",
+                    "Pre-Dispatch Full Refund: Orders cancelled prior to factory transit departure receive a 100% full refund with zero deductions."
                 )
             )
         }
@@ -1041,8 +1058,8 @@ private fun RefundPolicyContent() {
             PolicyDisclosureCard(
                 title = "2. Return Inspection & Hygiene Conditions",
                 bullets = listOf(
-                    "Sanitary Inspection: To protect our logistics partners, returned mattresses must be free from biological stains, liquid spills, pet damage, burns, or physical fabric tears.",
-                    "Protector Recommended: We strongly recommend utilizing a waterproof mattress protector throughout the 100-night trial.",
+                    "Sanitary Inspection: To protect logistics and warehouse personnel, any returned or serviced item must be free from biological stains, liquid spills, pet damage, burns, or physical fabric tears.",
+                    "Protector Recommended: We strongly recommend utilizing a waterproof mattress protector throughout regular usage.",
                     "Original Tags: The law tags and factory serial label must remain intact on the mattress."
                 )
             )
@@ -1065,7 +1082,7 @@ private fun RefundPolicyContent() {
                 bullets = listOf(
                     "Pre-Dispatch Cancellation: 100% full refund with zero deductions if cancelled prior to factory dispatch.",
                     "Cancellation In-Transit: Orders cancelled after the delivery vehicle has departed the fulfillment hub will incur actual round-trip transportation deduction (₹500 to ₹1,000).",
-                    "Damaged on Delivery: If any damage occurs during shipping, our White-Glove team will immediately issue an on-the-spot replacement at zero charge."
+                    "Damaged on Delivery: If any damage occurs during shipping, our delivery team will immediately issue an on-the-spot replacement at zero charge."
                 )
             )
         }
@@ -1085,10 +1102,87 @@ private fun RefundPolicyContent() {
             PolicyDisclosureCard(
                 title = "6. Cash on Delivery (COD) Policy: 20% Advance & 80% Upon Delivery",
                 bullets = listOf(
-                    "20% Advance Booking Deposit: To confirm custom factory fabrication and allocate white-glove logistics, all Cash on Delivery (COD) orders require an immediate 20% booking deposit paid online via UPI, Debit/Credit Card, or Net Banking.",
-                    "80% Balance Upon Delivery: The remaining 80% balance is strictly payable to our White-Glove delivery specialist only after you inspect the unboxed mattress inside your bedroom.",
+                    "20% Advance Booking Deposit: To confirm custom factory fabrication and allocate delivery logistics, all Cash on Delivery (COD) orders require an immediate 20% booking deposit paid online via UPI, Debit/Credit Card, or Net Banking.",
+                    "80% Balance Upon Delivery: The remaining 80% balance is strictly payable to our delivery specialist only after you inspect the unboxed mattress inside your bedroom.",
                     "Accepted Payment Modes on Delivery: The 80% balance can be settled via Cash, instant UPI QR code scan, or portable POS card terminal upon in-room setup.",
-                    "100-Night Trial Coverage: The 20% advance booking deposit is fully protected under our 100-Night Sleep Sanctuary Trial and 100% money-back policy."
+                    "Advance Protection: The 20% advance booking deposit is fully protected under our transparent cancellation, replacement, and refund policy."
+                )
+            )
+        }
+    }
+}
+
+// -------------------------------------------------------------------------------------
+// TAB 4: SHIPPING & DELIVERY POLICY (RAZORPAY COMPLIANT)
+// -------------------------------------------------------------------------------------
+@Composable
+private fun ShippingPolicyContent() {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 12.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = ForestGreenPrimary.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, ForestGreenPrimary.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.LocalShipping, contentDescription = null, tint = ForestGreenPrimary, modifier = Modifier.size(28.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Doorstep Shipping & White-Glove Setup Policy", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text("100% Free Doorstep Delivery & In-Bedroom Assembly across India.", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+
+        item {
+            PolicyDisclosureCard(
+                title = "1. Delivery Timelines & Transit SLA",
+                bullets = listOf(
+                    "Standard Pan-India Transit: All mattresses, sleep ensembles, and home furnishings are dispatched from our regional hubs and delivered within 3 to 7 business days.",
+                    "Express Regional (Jaipur & Rajasthan): Orders within Jaipur and neighboring districts are fulfilled via our company-owned climate-controlled fleet within 24 to 48 hours.",
+                    "Bespoke / Custom Sizes: Handcrafted custom pocket coil arrays and solid teak beds are fabricated and delivered within 7 to 10 business days."
+                )
+            )
+        }
+
+        item {
+            PolicyDisclosureCard(
+                title = "2. Shipping Charges & White-Glove Assembly",
+                bullets = listOf(
+                    "Zero Delivery Fee: We offer 100% Free Standard Doorstep Delivery on all orders across India with zero hidden logistics or handling surcharges.",
+                    "Complimentary In-Room Setup: Our logistics team carries the mattress up to your bedroom, unboxes the multi-layer protective packaging, and positions it on your bed foundation at zero extra cost.",
+                    "Foundation & Hydraulic Assembly: SpringHaven ensembles and hydraulic bed frames include complete professional assembly by our certified technicians."
+                )
+            )
+        }
+
+        item {
+            PolicyDisclosureCard(
+                title = "3. Real-Time Tracking & Shipment Dispatch",
+                bullets = listOf(
+                    "Live Tracking Number: As soon as your order departs our fulfillment facility, a live tracking link and AWB number are dispatched via SMS and in-app order status.",
+                    "Pre-Delivery Confirmation: Our delivery fleet supervisor places a courtesy verification call 2 to 4 hours prior to delivery to confirm your convenient time slot."
+                )
+            )
+        }
+
+        item {
+            PolicyDisclosureCard(
+                title = "4. Damaged in Transit & Zero-Friction Replacement",
+                bullets = listOf(
+                    "100% Transit Insured: All shipments are fully insured against transit friction, moisture, or courier handling damage.",
+                    "On-the-Spot Replacement: If packaging is visibly damaged upon delivery, you may refuse acceptance or mark it on the Proof of Delivery (POD). An expedited brand-new unit will be dispatched immediately at zero cost."
                 )
             )
         }

@@ -301,7 +301,7 @@ fun AccountScreen(
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
                         AccountMenuRow(
                             icon = Icons.Default.LocalShipping,
-                            title = "Track White-Glove Order",
+                            title = "Track Order Delivery",
                             subtitle = "Live delivery milestones & driver details",
                             onClick = { onOpenModal(ActiveModal.ORDER_TRACKING) }
                         )
@@ -316,7 +316,7 @@ fun AccountScreen(
                         AccountMenuRow(
                             icon = Icons.AutoMirrored.Filled.CompareArrows,
                             title = "Mattress Comparison Matrix",
-                            subtitle = "Side-by-side specs, coils & trials",
+                            subtitle = "Side-by-side specs, coils & warranty",
                             onClick = { onOpenModal(ActiveModal.COMPARE_PRODUCTS) }
                         )
                     }
@@ -343,6 +343,14 @@ fun AccountScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                        AccountMenuRow(
+                            icon = Icons.Default.ChatBubble,
+                            title = "Live Customer Support Chat",
+                            subtitle = "1-on-1 with customer care specialists",
+                            badgeText = "Live Online",
+                            onClick = { onOpenModal(ActiveModal.CUSTOMER_SUPPORT_CHAT) }
+                        )
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
                         AccountMenuRow(
                             icon = Icons.AutoMirrored.Filled.Assignment,
                             title = "Your Needs & Custom Inquiry",
@@ -432,7 +440,7 @@ fun AccountScreen(
                         AccountMenuRow(
                             icon = Icons.AutoMirrored.Filled.AssignmentReturn,
                             title = "Refund & Cancellation Policy",
-                            subtitle = "100-night trial, return eligibility & timelines",
+                            subtitle = "Return eligibility, inspections & refund timelines",
                             onClick = { onOpenModal(ActiveModal.REFUND_POLICY) }
                         )
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), color = MaterialTheme.colorScheme.outlineVariant)
@@ -574,7 +582,7 @@ fun AccountScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "To request permanent deletion of cloud orders, invoices, or warranty ledger records from our servers without the app, you may also use our web portal or email Lakshya190207@gmail.com:",
+                        text = "To request permanent deletion of cloud orders, invoices, or warranty ledger records from our servers without the app, you may also use our web portal or email gooddreamshomedecor@gmail.com:",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -585,7 +593,7 @@ fun AccountScreen(
                         OutlinedButton(
                             onClick = {
                                 val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                                    data = Uri.parse("mailto:Lakshya190207@gmail.com")
+                                    data = Uri.parse("mailto:gooddreamshomedecor@gmail.com")
                                     putExtra(Intent.EXTRA_SUBJECT, "Account & Data Deletion Request - Good Dream")
                                     putExtra(
                                         Intent.EXTRA_TEXT,
@@ -595,7 +603,7 @@ fun AccountScreen(
                                 try {
                                     context.startActivity(emailIntent)
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Contact Lakshya190207@gmail.com", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Contact gooddreamshomedecor@gmail.com", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -679,6 +687,7 @@ private fun AccountMenuRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    badgeText: String? = null,
     onClick: () -> Unit
 ) {
     Row(
@@ -706,12 +715,30 @@ private fun AccountMenuRow(
         Spacer(modifier = Modifier.width(14.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.5.sp,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.5.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                if (badgeText != null) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(StatusSuccess.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = badgeText,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = StatusSuccess
+                        )
+                    }
+                }
+            }
             Text(
                 text = subtitle,
                 fontSize = 11.sp,

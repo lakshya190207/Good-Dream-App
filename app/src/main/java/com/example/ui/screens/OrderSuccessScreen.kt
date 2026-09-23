@@ -122,7 +122,7 @@ fun OrderSuccessScreen(
                     ) {
                         Icon(Icons.Outlined.LocalShipping, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Track White-Glove Delivery →", fontWeight = FontWeight.Bold)
+                        Text("Track Delivery →", fontWeight = FontWeight.Bold)
                     }
 
                     OutlinedButton(
@@ -133,7 +133,7 @@ fun OrderSuccessScreen(
                                 ==================================================
                                 Order Reference ID: ${order?.id ?: "GD-ORD-2026-99124"}
                                 Client: ${order?.customerName ?: "Valued Sanctuary Patron"}
-                                Estimated White-Glove Delivery: $estimatedDeliveryDate
+                                Estimated Delivery: $estimatedDeliveryDate
                                 Delivery Slot: ${order?.deliverySlot ?: "Standard Slot"}
 
                                 Handcrafted Sanctuary Items:
@@ -145,7 +145,7 @@ fun OrderSuccessScreen(
                                 ${order?.deliveryAddress ?: ""}, ${order?.city ?: ""}, ${order?.state ?: ""} - ${order?.pincode ?: ""}
 
                                 Warranty: 25-Year SpringHaven™ Lifetime Orthopedic Guarantee
-                                White-Glove Concierge: concierge@gooddreamsanctuary.com
+                                Customer Support: gooddreamshomedecor@gmail.com
                                 ==================================================
                                 Handcrafted with organic pride by Good Dream Sanctuary.
                             """.trimIndent()
@@ -235,7 +235,7 @@ fun OrderSuccessScreen(
             )
 
             Text(
-                text = "Your Good Dream handcrafted bedding is officially booked. Our master artisans and white-glove concierge are preparing your order for custom crafting and direct room placement.",
+                text = "Your Good Dream handcrafted bedding is officially booked. Our master artisans are preparing your order for custom crafting and doorstep delivery.",
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -272,7 +272,7 @@ fun OrderSuccessScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Estimated White-Glove Delivery", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Estimated Delivery", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(
                             text = estimatedDeliveryDate,
                             fontWeight = FontWeight.Bold,
@@ -332,7 +332,7 @@ fun OrderSuccessScreen(
                                     lineHeight = 16.sp
                                 )
                                 Text(
-                                    text = "Pay the remaining 80% balance to our White-Glove specialist via Cash, UPI QR, or Card machine only after in-room unboxing and inspection.",
+                                    text = "Pay the remaining 80% balance to our delivery team via Cash, UPI QR, or Card machine only after in-room unboxing and inspection.",
                                     fontSize = 10.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -391,7 +391,7 @@ fun OrderSuccessScreen(
                 }
             }
 
-            // 4-Stage Live White-Glove Order Journey Timeline
+            // 4-Stage Live Delivery Journey Timeline
             Card(
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -413,7 +413,7 @@ fun OrderSuccessScreen(
                             Icon(Icons.Outlined.LocalShipping, contentDescription = null, tint = ForestGreenPrimary, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "White-Glove Order Journey",
+                                text = "Order Delivery Journey",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -435,7 +435,7 @@ fun OrderSuccessScreen(
                     TimelineStepItem(
                         stepNumber = 1,
                         title = "Order Reserved & Confirmed",
-                        description = "Cryptographic order recorded. Dedicated white-glove concierge assigned to oversee your bespoke bedding creation.",
+                        description = "Order recorded. Dedicated team assigned to oversee your bespoke bedding creation.",
                         timeEstimate = "Completed Just Now",
                         status = TimelineStatus.COMPLETED
                     )
@@ -450,8 +450,8 @@ fun OrderSuccessScreen(
 
                     TimelineStepItem(
                         stepNumber = 3,
-                        title = "Dispatched via Climate-Regulated Fleet",
-                        description = "Enclosed in triple-layer sterile breathable wraps and transit-monitored with temperature & humidity control.",
+                        title = "Dispatched via Delivery Fleet",
+                        description = "Enclosed in triple-layer sterile breathable wraps and transit-monitored.",
                         timeEstimate = "Scheduled • Day 3",
                         status = TimelineStatus.UPCOMING
                     )
@@ -459,7 +459,7 @@ fun OrderSuccessScreen(
                     TimelineStepItem(
                         stepNumber = 4,
                         title = "In-Room Delivery & Setup",
-                        description = "Two white-glove specialists carry mattress directly to your bedroom, unwrap, inspect, and remove legacy packaging.",
+                        description = "Delivery specialists carry mattress directly to your bedroom, unwrap, inspect, and remove legacy packaging.",
                         timeEstimate = "Estimated: $estimatedDeliveryDate",
                         status = TimelineStatus.UPCOMING,
                         isLast = true

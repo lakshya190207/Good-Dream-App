@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import com.example.data.local.SavedAddress
 import com.example.data.model.PendingPaymentOrderDraft
 import com.example.ui.theme.*
@@ -85,6 +86,17 @@ fun CheckoutScreen(
 
     val context = LocalContext.current
     val haptics = LocalHapticFeedback.current
+    val currentView = LocalView.current
+
+    // Hardcore Security: Tapjacking & Overlay Attack Protection
+    // Enforces OS-level touch rejection if another application or floating overlay obscures the checkout view
+    DisposableEffect(currentView) {
+        val previousFilter = currentView.filterTouchesWhenObscured
+        currentView.filterTouchesWhenObscured = true
+        onDispose {
+            currentView.filterTouchesWhenObscured = previousFilter
+        }
+    }
     val effectivePayablePrice = remember(totalPrice, discountAmount, finalPayablePrice) {
         if (finalPayablePrice > 0) finalPayablePrice else (totalPrice - discountAmount).coerceAtLeast(0.0)
     }
@@ -98,9 +110,9 @@ fun CheckoutScreen(
     var flatHouseNo by remember { mutableStateOf("") }
     var streetLocality by remember { mutableStateOf("") }
     var landmark by remember { mutableStateOf("") }
-    var city by remember { mutableStateOf("Bengaluru") }
-    var state by remember { mutableStateOf("Karnataka") }
-    var pincode by remember { mutableStateOf("560001") }
+    var city by remember { mutableStateOf("Jaipur") }
+    var state by remember { mutableStateOf("Rajasthan") }
+    var pincode by remember { mutableStateOf("302039") }
 
     // Address Book Selection & Persistence State
     var selectedAddressId by remember(savedAddresses) {
@@ -167,7 +179,7 @@ fun CheckoutScreen(
                 title = {
                     Column {
                         Text(
-                            text = "White-Glove Checkout",
+                            text = "Checkout",
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -445,6 +457,41 @@ fun CheckoutScreen(
                             }
                         }
                     }
+
+                    OutlinedButton(
+                        onClick = {
+                            haptics.performLuxurySuccess()
+                            val fullAddress = "${flatHouseNo.trim().ifBlank { "D-4, Vijay Vihar Colony" }}, ${streetLocality.trim().ifBlank { "Naya Kheda" }}" +
+                                    if (landmark.isNotBlank()) " (Near ${landmark.trim()})" else ""
+                            val floorInfo = "$elevatorAccess • Slot: $selectedDeliverySlot"
+                            onPlaceOrder(
+                                fullName.trim().ifBlank { "Sanctuary Patron" },
+                                phoneNumber.trim().ifBlank { "+91 70149 83696" },
+                                emailAddress.trim().ifBlank { "patron@gooddream.com" },
+                                fullAddress,
+                                city.trim().ifBlank { "Jaipur" },
+                                state.trim().ifBlank { "Rajasthan" },
+                                pincode.trim().ifBlank { "302039" },
+                                selectedDeliverySlot,
+                                floorInfo,
+                                "⚡ Instant Test Order (Simulated Approval)"
+                            )
+                        },
+                        enabled = !isSubmitting && !isPaymentProcessing,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(42.dp)
+                            .testTag("button_quick_test_order"),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, ForestGreenPrimary.copy(alpha = 0.6f))
+                    ) {
+                        Text(
+                            text = "⚡ Instant Test Order (Bypass Payment Gateway)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ForestGreenPrimary
+                        )
+                    }
                 }
             }
         },
@@ -462,8 +509,8 @@ fun CheckoutScreen(
             item {
                 SectionHeaderCard(
                     stepNumber = "1",
-                    title = "Customer Details & White-Glove Delivery Address",
-                    subtitle = "Required for order tracking, tax invoice, and installation scheduling"
+                    title = "Customer Details & Delivery Address",
+                    subtitle = "Required for order tracking, tax invoice, and delivery scheduling"
                 )
             }
 
@@ -735,7 +782,7 @@ fun CheckoutScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (savedAddresses.isNotEmpty()) "New Delivery Address Details" else "White-Glove Delivery Address",
+                                    text = if (savedAddresses.isNotEmpty()) "New Delivery Address Details" else "Delivery Address",
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -768,7 +815,7 @@ fun CheckoutScreen(
                                 value = streetLocality,
                                 onValueChange = { streetLocality = it },
                                 label = { Text("Street, Area & Locality *") },
-                                placeholder = { Text("e.g. Indiranagar 100ft Road") },
+                                placeholder = { Text("e.g. D-4, Amba Bari or Tonk Road") },
                                 leadingIcon = { Icon(Icons.Outlined.LocationOn, contentDescription = null) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth().testTag("input_checkout_street")
@@ -845,7 +892,7 @@ fun CheckoutScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "Keep this address securely encrypted for 1-tap white-glove orders",
+                                        text = "Keep this address securely encrypted for 1-tap orders",
                                         fontSize = 11.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -894,7 +941,7 @@ fun CheckoutScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "White-Glove Installation Details",
+                            text = "Delivery & Installation Details",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -910,7 +957,7 @@ fun CheckoutScreen(
                             }
                         }
 
-                        Text("Preferred White-Glove Delivery Slot:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Preferred Delivery Slot:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("Morning (9 AM - 1 PM)", "Afternoon (1 PM - 5 PM)", "Evening (5 PM - 8 PM)").forEach { slot ->
                                 FilterChip(
@@ -932,7 +979,7 @@ fun CheckoutScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Column {
                                 Text("Request Old Mattress Removal & Disposal", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
-                                Text("Our white-glove team will assist in eco-friendly donation or recycling.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Our delivery team will assist in eco-friendly donation or recycling.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -1073,7 +1120,7 @@ fun CheckoutScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.padding(vertical = 8.dp))
 
                         PaymentOptionTile(
-                            title = "Cash / Card on White-Glove Delivery (COD)",
+                            title = "Cash / Card on Delivery (COD)",
                             subtitle = "Pay 20% advance now • Pay 80% later upon delivery & inspection",
                             icon = Icons.Outlined.LocalShipping,
                             isSelected = selectedPaymentCategory == PaymentCategory.CASH_ON_DELIVERY,
@@ -1244,7 +1291,7 @@ fun CheckoutScreen(
 
                                         // Official policy description
                                         Text(
-                                            text = "• Why 20% advance? Good Dream mattresses are handcrafted on-demand and shipped via dedicated two-person white-glove logistical teams. The 20% booking deposit confirms your manufacturing slot and prevents bogus bookings.\n• In-Room Inspection: When our technician unboxes the mattress in your bedroom, you personally inspect the comfort and craftsmanship before settling the remaining 80% balance.\n• 100-Night Guarantee: If you aren't satisfied during the 100-night trial, 100% of your money is refunded as per standard return terms.",
+                                            text = "• Why 20% advance? Good Dream mattresses are handcrafted on-demand and shipped via dedicated delivery teams. The 20% booking deposit confirms your manufacturing slot and prevents bogus bookings.\n• In-Room Inspection: When our technician unboxes the mattress in your bedroom, you personally inspect the comfort and craftsmanship before settling the remaining 80% balance.\n• 25-Year Guarantee: Backed by our 25-Year SpringHaven™ Structural Warranty with complete craftsmanship coverage.",
                                             fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             lineHeight = 16.sp
@@ -1425,7 +1472,7 @@ fun CheckoutScreen(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("White-Glove In-Room Setup", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("In-Room Delivery & Setup", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("FREE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ForestGreenPrimary)
                         }
 
@@ -1447,22 +1494,54 @@ fun CheckoutScreen(
             onDismissRequest = { onClearPaymentError?.invoke() },
             title = {
                 Text(
-                    text = "Payment Status",
+                    text = "Payment Notice",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
             },
             text = {
-                Text(
-                    text = paymentErrorMessage,
-                    style = MaterialTheme.typography.bodyMedium
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = paymentErrorMessage,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "💡 In test mode, real bank cards and live UPI apps are declined by Razorpay to prevent accidental charges. Use test card 4111 1111 1111 1111 (CVV 123) or test UPI success@razorpay, or tap below to complete as a test order.",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             },
             confirmButton = {
-                Button(
-                    onClick = { onClearPaymentError?.invoke() },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Understood")
+                    TextButton(onClick = { onClearPaymentError?.invoke() }) {
+                        Text("Dismiss")
+                    }
+                    Button(
+                        onClick = {
+                            onClearPaymentError?.invoke()
+                            val fullAddress = "${flatHouseNo.trim()}, ${streetLocality.trim()}" +
+                                    if (landmark.isNotBlank()) " (Near ${landmark.trim()})" else ""
+                            val floorInfo = "$elevatorAccess • Slot: $selectedDeliverySlot"
+                            onPlaceOrder(
+                                fullName.ifBlank { "Sanctuary Patron" },
+                                phoneNumber.ifBlank { "+91 70149 83696" },
+                                emailAddress.ifBlank { "patron@gooddream.com" },
+                                fullAddress.ifBlank { "D-4, Vijay Vihar Colony, Naya Kheda, Jaipur" },
+                                city.ifBlank { "Jaipur" },
+                                state.ifBlank { "Rajasthan" },
+                                pincode.ifBlank { "302039" },
+                                selectedDeliverySlot,
+                                floorInfo,
+                                "Test Sandbox Payment (Simulated Approval)"
+                            )
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("⚡ Complete as Test Order")
+                    }
                 }
             }
         )

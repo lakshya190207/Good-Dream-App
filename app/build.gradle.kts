@@ -1,4 +1,6 @@
 import com.google.gms.googleservices.GoogleServicesPlugin.MissingGoogleServicesStrategy
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
   alias(libs.plugins.android.application)
@@ -28,18 +30,30 @@ android {
 
   signingConfigs {
     create("release") {
-      val customKeystorePath = System.getenv("KEYSTORE_PATH")
+      val keystorePropsFile = file("${rootDir}/keystore.properties")
+      val keystoreProps = Properties()
+      if (keystorePropsFile.exists()) {
+        FileInputStream(keystorePropsFile).use { stream -> keystoreProps.load(stream) }
+      }
+
       val defaultUploadKey = file("${rootDir}/my-upload-key.jks")
-      if (customKeystorePath != null && file(customKeystorePath).exists()) {
-        storeFile = file(customKeystorePath)
-        storePassword = System.getenv("STORE_PASSWORD")
-        keyAlias = "upload"
-        keyPassword = System.getenv("KEY_PASSWORD")
-      } else if (defaultUploadKey.exists()) {
+      val customPath: String? = System.getenv("KEYSTORE_PATH") ?: keystoreProps.getProperty("storeFile")
+      val storePass: String? = System.getenv("STORE_PASSWORD") ?: keystoreProps.getProperty("storePassword")
+      val keyPass: String? = System.getenv("KEY_PASSWORD") ?: keystoreProps.getProperty("keyPassword")
+      val alias: String = System.getenv("KEY_ALIAS") ?: keystoreProps.getProperty("keyAlias") ?: "upload"
+
+      val resolvedCustomFile = if (customPath != null) file(customPath) else null
+
+      if (resolvedCustomFile != null && resolvedCustomFile.exists() && storePass != null) {
+        storeFile = resolvedCustomFile
+        storePassword = storePass
+        keyAlias = alias
+        keyPassword = keyPass ?: storePass
+      } else if (defaultUploadKey.exists() && storePass != null) {
         storeFile = defaultUploadKey
-        storePassword = System.getenv("STORE_PASSWORD")
-        keyAlias = "upload"
-        keyPassword = System.getenv("KEY_PASSWORD")
+        storePassword = storePass
+        keyAlias = alias
+        keyPassword = keyPass ?: storePass
       } else {
         if (gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }) {
           logger.warn("SECURITY WARNING: Building release artifact without external production KEYSTORE_PATH. Using debug keystore for local development preview only.")
@@ -134,6 +148,7 @@ dependencies {
   implementation(libs.firebase.appcheck.debug)
   implementation(libs.firebase.crashlytics)
   implementation(libs.firebase.perf)
+  implementation(libs.firebase.config)
   implementation(libs.timber)
   implementation(libs.androidx.security.crypto)
   implementation(libs.androidx.work.runtime.ktx)
@@ -169,7 +184,6 @@ dependencies {
   androidTestImplementation(libs.hilt.android.testing)
   "kspAndroidTest"(libs.hilt.compiler)
   
-  debugImplementation(libs.leakcanary.android)
   testImplementation(libs.mockk)
 }
 

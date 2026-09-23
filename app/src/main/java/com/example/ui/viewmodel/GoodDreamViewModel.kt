@@ -1,6 +1,7 @@
 package com.example.ui.viewmodel
 
 import android.app.Application
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.config.AppConfig
@@ -13,8 +14,10 @@ import com.example.data.local.SavedAddress
 import com.example.data.local.UserSessionManager
 import com.example.data.model.*
 import com.example.data.remote.EmailSendResult
+import com.example.data.remote.FirestoreCatalogService
 import com.example.data.repository.GoodDreamRepository
 import com.example.util.NotificationHelper
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.messaging.FirebaseMessaging
 import timber.log.Timber
 import java.security.MessageDigest
@@ -60,11 +63,14 @@ enum class ActivePage {
     TERMS_OF_SERVICE,
     REFUND_POLICY,
     COOKIE_POLICY,
+    SHIPPING_POLICY,
+    CUSTOMER_SUPPORT_CHAT,
     BESPOKE_STUDIO
 }
 
 typealias ActiveModal = ActivePage
 
+@Immutable
 data class CartItemWithProduct(
     val product: ProductEntity,
     val quantity: Int
@@ -97,6 +103,7 @@ sealed interface PasscodeAuthResult {
     data class Locked(val remainingSeconds: Int, val message: String) : PasscodeAuthResult
 }
 
+@Immutable
 data class GoodDreamUiState(
     val currentTab: MainTab = MainTab.HOME,
     val activePage: ActivePage = ActivePage.NONE,
@@ -135,7 +142,7 @@ data class GoodDreamUiState(
     val chatMessages: List<ChatMessage> = listOf(
         ChatMessage(
             role = MessageRole.MODEL,
-            text = "Welcome to Good Dream Home Decor! 🌙 I'm your DreamCare AI Concierge. How can I help you today? Ask me about mattress firmness for back pain, custom sizing, stain cleaning, 100-night trials, or order status."
+            text = "Welcome to Good Dream Home Decor! 🌙 I'm your DreamCare AI Concierge. How can I help you today? Ask me about mattress firmness for back pain, custom sizing, stain cleaning, 25-year warranty, or order status."
         )
     ),
     val isChatLoading: Boolean = false,
@@ -154,7 +161,13 @@ data class GoodDreamUiState(
     val pendingPaymentOrderDraft: PendingPaymentOrderDraft? = null,
     val isPaymentProcessing: Boolean = false,
     val paymentErrorMessage: String? = null,
-    val crmUsers: List<CrmUserRecord> = emptyList()
+    val crmUsers: List<CrmUserRecord> = emptyList(),
+    val supportChatMessages: List<SupportChatMessage> = emptyList(),
+    val activeSupportChatSession: SupportChatSession? = null,
+    val allSupportSessions: List<SupportChatSession> = emptyList(),
+    val selectedAdminChatSession: SupportChatSession? = null,
+    val adminChatMessages: List<SupportChatMessage> = emptyList(),
+    val isSupportChatSending: Boolean = false
 ) {
     val totalCartPrice: Double
         get() = cartItems.sumOf { it.product.price * it.quantity }
@@ -172,11 +185,17 @@ data class GoodDreamUiState(
 class GoodDreamViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = GoodDreamRepository(AppDatabase.getInstance(application))
+    private val firestoreCatalogService = FirestoreCatalogService()
     private val geminiChatService = GeminiChatService()
     private val userSessionManager = UserSessionManager(application)
     private val connectivityObserver = com.example.util.NetworkConnectivityObserver(application)
     private val initialEmail = userSessionManager.getUserEmail()
     private val initialAddresses = if (initialEmail != null) userSessionManager.getSavedAddresses(initialEmail) else emptyList()
+
+    private var customerChatListener: ListenerRegistration? = null
+    private var adminSessionsListener: ListenerRegistration? = null
+    private var adminChatMessagesListener: ListenerRegistration? = null
+    private var productSyncListener: ListenerRegistration? = null
 
     private val _uiState = MutableStateFlow(
         GoodDreamUiState(
@@ -184,7 +203,11 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
             loggedInUserEmail = initialEmail,
             loggedInUserName = userSessionManager.getUserName(),
             savedAddresses = initialAddresses,
-            fcmToken = userSessionManager.getFcmToken()
+            fcmToken = userSessionManager.getFcmToken(),
+            customerOtpLockoutUntilEpochMs = userSessionManager.getCustomerOtpLockoutUntil(),
+            customerOtpFailedAttempts = userSessionManager.getCustomerOtpFailedAttempts(),
+            adminLockoutUntilEpochMs = userSessionManager.getAdminLockoutUntil(),
+            adminFailedAttempts = userSessionManager.getAdminFailedAttempts()
         )
     )
     val uiState: StateFlow<GoodDreamUiState> = _uiState.asStateFlow()
@@ -248,10 +271,99 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
             _uiState.update { it.copy(isCatalogLoading = true) }
             repository.syncCatalogWithCloud()
             AppConfigProvider.fetchAtStartup(application)
-            // Brief delay allows shimmer skeletons to be perceived naturally during initial boot/sync
-            delay(400)
             _uiState.update { it.copy(isCatalogLoading = false) }
             syncCrmUsers()
+        }
+
+        // Persistent User Authentication & Session Restoration across App Restarts
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // 1. Fetch remote users from Firestore and cache in Room database
+                val remoteUsers = firestoreCatalogService.fetchRemoteUsers()
+                remoteUsers.forEach { remote ->
+                    val email = remote.email.trim().lowercase()
+                    if (email.isNotBlank()) {
+                        val existingUser = repository.getUserByEmail(email)
+                        val name = remote.name.ifBlank { existingUser?.name ?: email.substringBefore("@") }
+                        val phone = remote.phone.ifBlank { existingUser?.phone ?: "" }
+                        val userType = remote.userType.name
+                        val notes = remote.notes.ifBlank { existingUser?.notes ?: "" }
+                        val hashedPasscode = existingUser?.hashedPasscode ?: ""
+                        val isCurrent = existingUser?.isCurrentSession ?: false
+                        val addresses = if (existingUser != null && existingUser.addressesJson != "[]") existingUser.addressesJson else "[]"
+                        repository.saveUser(
+                            UserEntity(
+                                email = email,
+                                name = name,
+                                phone = phone,
+                                userType = userType,
+                                hashedPasscode = hashedPasscode,
+                                notes = notes,
+                                addressesJson = addresses,
+                                isCurrentSession = isCurrent,
+                                createdAtEpochMs = existingUser?.createdAtEpochMs ?: System.currentTimeMillis()
+                            )
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "Could not fetch remote users from Firestore")
+            }
+
+            try {
+                // 2. Hydrate UserSessionManager from Room DB so credentials/names are available immediately offline
+                val roomUsers = repository.getAllUsersSync()
+                roomUsers.forEach { user ->
+                    if (user.hashedPasscode.isNotBlank()) {
+                        userSessionManager.restoreUserFromDatabase(
+                            email = user.email,
+                            name = user.name,
+                            phone = user.phone,
+                            hashedPasscode = user.hashedPasscode,
+                            notes = user.notes,
+                            addressesJson = user.addressesJson
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "Could not hydrate UserSessionManager from Room DB")
+            }
+
+            // 3. Check and restore active session if not already logged in
+            val currentEmail = userSessionManager.getUserEmail()
+            val activeUser = if (!currentEmail.isNullOrBlank()) {
+                repository.getUserByEmail(currentEmail)
+            } else {
+                repository.getCurrentSessionUser()
+            }
+
+            if (activeUser != null) {
+                val email = activeUser.email
+                val name = activeUser.name.ifBlank { userSessionManager.getUserName() ?: email.substringBefore("@") }
+                val isAdmin = email.equals(OFFICIAL_ADMIN_EMAIL, ignoreCase = true) || email.equals(LEGACY_ADMIN_EMAIL, ignoreCase = true)
+                userSessionManager.saveUserSession(email, name)
+                if (activeUser.addressesJson.isNotBlank() && activeUser.addressesJson != "[]") {
+                    userSessionManager.restoreUserFromDatabase(
+                        email = email,
+                        name = name,
+                        phone = activeUser.phone,
+                        hashedPasscode = activeUser.hashedPasscode,
+                        notes = activeUser.notes,
+                        addressesJson = activeUser.addressesJson
+                    )
+                }
+                repository.setCurrentSession(email)
+                val addresses = userSessionManager.getSavedAddresses(email)
+                _uiState.update {
+                    it.copy(
+                        isUserLoggedIn = true,
+                        loggedInUserEmail = email,
+                        loggedInUserName = name,
+                        isAdminAuthenticated = isAdmin,
+                        savedAddresses = addresses
+                    )
+                }
+            }
         }
 
         // Observe categories
@@ -338,7 +450,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         // Start background realtime product listener from Firestore
-        repository.startRealtimeProductSync(viewModelScope)
+        productSyncListener = repository.startRealtimeProductSync(viewModelScope)
     }
 
     // Fast in-memory token index for 120 FPS predictive search without allocations
@@ -398,13 +510,16 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
             try {
                 val app = getApplication<Application>()
                 val imageLoader = Coil.imageLoader(app)
-                val heroUrls = products.take(10).flatMap { it.getImagesList().take(1) }
+                val heroUrls = products.take(15).flatMap { it.getImagesList().take(2) }
                 for (url in heroUrls) {
                     if (url.isNotBlank()) {
+                        val optimizedUrl = com.example.ui.components.optimizeImageUrl(url, 600)
                         val request = ImageRequest.Builder(app)
-                            .data(url)
+                            .data(optimizedUrl)
                             .memoryCachePolicy(CachePolicy.ENABLED)
                             .diskCachePolicy(CachePolicy.ENABLED)
+                            .networkCachePolicy(CachePolicy.ENABLED)
+                            .allowHardware(true)
                             .build()
                         imageLoader.enqueue(request)
                     }
@@ -426,14 +541,18 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                 val imageLoader = Coil.imageLoader(app)
                 for (cat in categories) {
                     if (cat.thumbnailUrl.isNotBlank()) {
+                        val optimizedUrl = com.example.ui.components.optimizeImageUrl(cat.thumbnailUrl, 500)
                         val request = ImageRequest.Builder(app)
-                            .data(cat.thumbnailUrl)
+                            .data(optimizedUrl)
                             .memoryCachePolicy(CachePolicy.ENABLED)
                             .diskCachePolicy(CachePolicy.ENABLED)
+                            .networkCachePolicy(CachePolicy.ENABLED)
+                            .allowHardware(true)
                             .build()
                         imageLoader.enqueue(request)
                     }
                 }
+                Timber.d("Eagerly pre-warmed %d category thumbnails into Coil memory cache", categories.size)
             } catch (e: Exception) {
                 Timber.w(e, "Non-critical error during category image pre-warming")
             }
@@ -490,7 +609,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
             }
             return
         }
-        if (page == ActivePage.ADMIN_PANEL) {
+        if (page == ActivePage.ADMIN_PANEL && _uiState.value.isAdminAuthenticated) {
             syncCrmUsers()
         }
         _uiState.update { it.copy(activePage = page, activeModal = page) }
@@ -617,12 +736,28 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun applyCoupon(code: String, percent: Int) {
+    fun applyCoupon(code: String, percent: Int = 25) {
+        val cleanCode = code.trim().uppercase()
+        val isMemberCode = cleanCode == "WELCOME25" || cleanCode == "SPRINGHAVEN25" || cleanCode == "GD25"
+        if (!isMemberCode) {
+            _uiState.update {
+                it.copy(userNotificationMessage = "Only verified Member Privilege codes (WELCOME25) are eligible.")
+            }
+            return
+        }
+
+        if (!_uiState.value.isUserLoggedIn) {
+            _uiState.update {
+                it.copy(userNotificationMessage = "Please sign in or register to unlock your 25% Member Privilege (WELCOME25).")
+            }
+            return
+        }
+
         _uiState.update {
             it.copy(
-                appliedCouponCode = code.trim().uppercase(),
-                appliedDiscountPercent = percent,
-                userNotificationMessage = "Privilege code $code applied ($percent% OFF)"
+                appliedCouponCode = "WELCOME25",
+                appliedDiscountPercent = 25,
+                userNotificationMessage = "25% Member Privilege Applied (WELCOME25)"
             )
         }
     }
@@ -632,12 +767,16 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
             it.copy(
                 appliedCouponCode = null,
                 appliedDiscountPercent = 0,
-                userNotificationMessage = "Privilege code removed"
+                userNotificationMessage = "Privilege discount removed"
             )
         }
     }
 
     fun updateOrderStatus(orderId: String, newStatus: String) {
+        if (!_uiState.value.isAdminAuthenticated) {
+            _uiState.update { it.copy(userNotificationMessage = "Unauthorized: Admin privileges required") }
+            return
+        }
         viewModelScope.launch {
             repository.updateOrderStatus(orderId, newStatus)
             val stageIndex = when (newStatus.lowercase()) {
@@ -654,7 +793,29 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun syncCrmUsers() {
         viewModelScope.launch(Dispatchers.IO) {
-            val registeredUsers = userSessionManager.getAllRegisteredUsers()
+            val registeredUsers = userSessionManager.getAllRegisteredUsers().toMutableList()
+            
+            // Merge in users from Room Database
+            val roomUsers = repository.getAllUsersSync()
+            val existingEmails = registeredUsers.map { it.email.trim().lowercase() }.toSet()
+            roomUsers.forEach { ru ->
+                val ruEmail = ru.email.trim().lowercase()
+                if (!existingEmails.contains(ruEmail)) {
+                    val addresses = userSessionManager.getSavedAddresses(ruEmail)
+                    registeredUsers.add(
+                        CrmUserRecord(
+                            id = ruEmail,
+                            name = ru.name,
+                            email = ruEmail,
+                            phone = ru.phone,
+                            userType = if (ru.userType == "ADMIN") CrmUserType.ADMIN else CrmUserType.REGISTERED_VIP,
+                            addresses = addresses,
+                            notes = ru.notes
+                        )
+                    )
+                }
+            }
+
             val allOrdersList = repository.allOrders.first()
             val allInquiriesList = repository.allInquiries.first()
 
@@ -741,15 +902,53 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun saveCrmUser(email: String, name: String, phone: String, notes: String = "") {
-        userSessionManager.saveCrmUser(email, name, phone, notes)
-        syncCrmUsers()
+        if (!_uiState.value.isAdminAuthenticated) {
+            _uiState.update { it.copy(userNotificationMessage = "Unauthorized: Admin privileges required") }
+            return
+        }
+        val cleanEmail = email.trim().lowercase()
+        userSessionManager.saveCrmUser(cleanEmail, name, phone, notes)
+        viewModelScope.launch(Dispatchers.IO) {
+            val existing = repository.getUserByEmail(cleanEmail)
+            val hashedPass = userSessionManager.getHashedPasscode(cleanEmail) ?: existing?.hashedPasscode ?: ""
+            val addresses = userSessionManager.getAddressesJson(cleanEmail).takeIf { it != "[]" }
+                ?: existing?.addressesJson ?: "[]"
+            val entity = UserEntity(
+                email = cleanEmail,
+                name = name.trim(),
+                phone = phone.trim(),
+                userType = existing?.userType ?: "REGISTERED_VIP",
+                hashedPasscode = hashedPass,
+                notes = notes.trim(),
+                addressesJson = addresses,
+                isCurrentSession = (_uiState.value.loggedInUserEmail == cleanEmail),
+                createdAtEpochMs = existing?.createdAtEpochMs ?: System.currentTimeMillis()
+            )
+            repository.saveUser(entity)
+            firestoreCatalogService.saveRemoteUser(
+                email = cleanEmail,
+                name = name.trim(),
+                phone = phone.trim(),
+                userType = existing?.userType ?: "REGISTERED_VIP",
+                notes = notes.trim()
+            )
+            syncCrmUsers()
+        }
         _uiState.update { it.copy(userNotificationMessage = "Client profile updated for $name") }
     }
 
     fun deleteCrmUser(email: String) {
-        userSessionManager.deleteUserAccountAndData(email)
-        syncCrmUsers()
-        _uiState.update { it.copy(userNotificationMessage = "User data purged for $email") }
+        if (!_uiState.value.isAdminAuthenticated) {
+            _uiState.update { it.copy(userNotificationMessage = "Unauthorized: Admin privileges required") }
+            return
+        }
+        val cleanEmail = email.trim().lowercase()
+        userSessionManager.deleteUserAccountAndData(cleanEmail)
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteUser(cleanEmail)
+            syncCrmUsers()
+        }
+        _uiState.update { it.copy(userNotificationMessage = "User data purged for $cleanEmail") }
     }
 
     fun placeOrder(
@@ -779,13 +978,17 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                     append(" [Privilege Code: ${stateVal.appliedCouponCode} (${stateVal.appliedDiscountPercent}% OFF)]")
                 }
             }
-            val totalAmount = if (stateVal.finalPayablePrice > 0) {
-                stateVal.finalPayablePrice
-            } else if (stateVal.totalCartPrice > 0) {
-                stateVal.totalCartPrice
+            // Authoritative server-style recalculation of order amount against active line items
+            val rawSubtotal = if (stateVal.cartItems.isNotEmpty()) {
+                stateVal.cartItems.sumOf { it.product.price * it.quantity }
             } else {
-                48999.0
+                stateVal.selectedProduct?.price ?: 48999.0
             }
+            val discountRate = stateVal.appliedDiscountPercent.coerceIn(0, 100)
+            val calculatedDiscount = if (!stateVal.appliedCouponCode.isNullOrBlank() && discountRate > 0) {
+                rawSubtotal * (discountRate / 100.0)
+            } else 0.0
+            val totalAmount = (rawSubtotal - calculatedDiscount).coerceAtLeast(0.0)
 
             val newOrder = OrderEntity(
                 id = orderId,
@@ -806,8 +1009,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                 createdAt = System.currentTimeMillis()
             )
 
-            repository.insertOrder(newOrder)
-            repository.clearCart()
+            repository.placeOrderAtomic(newOrder)
 
             _uiState.update {
                 it.copy(
@@ -856,10 +1058,19 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         if (draft != null) {
-            val methodStr = if (draft.isCod) {
-                "Cash on Delivery (20% Advance ₹${draft.codAdvanceAmount.toInt()} paid via Razorpay Txn: $paymentId • 80% Balance ₹${draft.codBalanceAmount.toInt()} due on delivery)"
+            val sanitizedTxnId = paymentId.trim().filter { ch -> ch.isLetterOrDigit() || ch == '_' || ch == '-' }.take(64)
+                .ifBlank { "RZP-${System.currentTimeMillis()}" }
+
+            val verifiedStatus = if (draft.isCod) {
+                "Advance Paid (Pending Verification)"
             } else {
-                "Razorpay Online (${draft.paymentMethodDetail} • Txn: $paymentId)"
+                "Paid (Pending Verification)"
+            }
+
+            val methodStr = if (draft.isCod) {
+                "Cash on Delivery (20% Advance ₹${draft.codAdvanceAmount.toInt()} paid via Razorpay Txn: $sanitizedTxnId • 80% Balance ₹${draft.codBalanceAmount.toInt()} due on delivery)"
+            } else {
+                "Razorpay Online (${draft.paymentMethodDetail} • Txn: $sanitizedTxnId)"
             }
             placeOrder(
                 customerName = draft.customerName,
@@ -872,7 +1083,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                 deliverySlot = draft.deliverySlot,
                 floorElevator = draft.floorElevator,
                 paymentMethod = methodStr,
-                paymentStatus = "Paid"
+                paymentStatus = verifiedStatus
             )
             _uiState.update { it.copy(pendingPaymentOrderDraft = null) }
         }
@@ -896,7 +1107,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         val (stageTitle, stageDesc) = when (stageIndex) {
             1 -> "Atelier Crafting & Orthopedic Testing" to "Handcrafted assembly of pocket coils and organic zero-VOC Belgian latex layers underway."
             2 -> "Dispatched via Climate-Regulated Fleet" to "Enclosed in triple-layer sterile wraps in dedicated temperature-controlled transit."
-            3 -> "Out for White-Glove In-Room Setup" to "Our certified specialists are arriving for bedroom setup and packaging removal."
+            3 -> "Out for Delivery & In-Room Setup" to "Our certified specialists are arriving for bedroom setup and packaging removal."
             else -> "Order Confirmed & Logged" to "Your Good Dream handcrafted bedding is officially booked."
         }
         try {
@@ -941,11 +1152,18 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         _uiState.update { it.copy(userSleepProfile = profile) }
     }
 
-    fun saveDeliveryAddress(address: SavedAddress) {
-        val email = _uiState.value.loggedInUserEmail ?: return
+    fun saveDeliveryAddress(address: SavedAddress, emailOverride: String? = null) {
+        val email = emailOverride?.trim()?.takeIf { it.isNotBlank() } ?: _uiState.value.loggedInUserEmail ?: return
         userSessionManager.saveAddress(email, address)
         val updated = userSessionManager.getSavedAddresses(email)
         _uiState.update { it.copy(savedAddresses = updated) }
+        viewModelScope.launch(Dispatchers.IO) {
+            val user = repository.getUserByEmail(email)
+            if (user != null) {
+                val jsonStr = userSessionManager.getAddressesJson(email)
+                repository.saveUser(user.copy(addressesJson = jsonStr))
+            }
+        }
     }
 
     fun deleteDeliveryAddress(addressId: String) {
@@ -953,6 +1171,13 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         userSessionManager.deleteAddress(email, addressId)
         val updated = userSessionManager.getSavedAddresses(email)
         _uiState.update { it.copy(savedAddresses = updated) }
+        viewModelScope.launch(Dispatchers.IO) {
+            val user = repository.getUserByEmail(email)
+            if (user != null) {
+                val jsonStr = userSessionManager.getAddressesJson(email)
+                repository.saveUser(user.copy(addressesJson = jsonStr))
+            }
+        }
     }
 
     fun loadSavedAddresses() {
@@ -1034,6 +1259,10 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun updateInquiryStatus(inquiryId: String, newStatus: String) {
+        if (!_uiState.value.isAdminAuthenticated) {
+            _uiState.update { it.copy(userNotificationMessage = "Unauthorized: Admin privileges required") }
+            return
+        }
         viewModelScope.launch {
             repository.updateInquiryStatus(inquiryId, newStatus)
             _uiState.update { it.copy(userNotificationMessage = "Lead #$inquiryId status updated to '$newStatus'") }
@@ -1041,6 +1270,10 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun addOrUpdateProduct(product: ProductEntity) {
+        if (!_uiState.value.isAdminAuthenticated) {
+            _uiState.update { it.copy(userNotificationMessage = "Unauthorized: Admin privileges required") }
+            return
+        }
         viewModelScope.launch {
             repository.insertOrUpdateProduct(product)
             _uiState.update { it.copy(userNotificationMessage = "Product updated in Catalog") }
@@ -1048,6 +1281,10 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun deleteProduct(productId: String) {
+        if (!_uiState.value.isAdminAuthenticated) {
+            _uiState.update { it.copy(userNotificationMessage = "Unauthorized: Admin privileges required") }
+            return
+        }
         viewModelScope.launch {
             repository.deleteProduct(productId)
             _uiState.update { it.copy(userNotificationMessage = "Product removed from Catalog") }
@@ -1055,6 +1292,10 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun updateConfig(key: String, value: String) {
+        if (!_uiState.value.isAdminAuthenticated) {
+            _uiState.update { it.copy(userNotificationMessage = "Unauthorized: Admin privileges required") }
+            return
+        }
         viewModelScope.launch {
             repository.updateAppConfig(key, value)
             _uiState.update { it.copy(userNotificationMessage = "Configuration updated") }
@@ -1062,6 +1303,10 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun resetCatalog() {
+        if (!_uiState.value.isAdminAuthenticated) {
+            _uiState.update { it.copy(userNotificationMessage = "Unauthorized: Admin privileges required") }
+            return
+        }
         viewModelScope.launch {
             repository.resetToDefaultCatalog()
             _uiState.update { it.copy(userNotificationMessage = "Catalog reset to factory defaults") }
@@ -1100,7 +1345,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
             } catch (e: Exception) {
                 val errorMsg = ChatMessage(
                     role = MessageRole.MODEL,
-                    text = "I encountered an issue connecting to the AI service. Please try again or reach our concierge directly at +91 80 4123 9999.",
+                    text = "I encountered an issue connecting to the AI service. Please try again or reach our concierge directly at +91 7014983696.",
                     isError = true
                 )
                 _uiState.update {
@@ -1163,7 +1408,8 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
      */
     suspend fun requestUserEmailOtp(email: String): OtpRequestResult {
         val now = System.currentTimeMillis()
-        val currentLockout = _uiState.value.customerOtpLockoutUntilEpochMs
+        val persistentLockout = userSessionManager.getCustomerOtpLockoutUntil()
+        val currentLockout = maxOf(_uiState.value.customerOtpLockoutUntilEpochMs, persistentLockout)
         if (now < currentLockout) {
             val remainingSec = (((currentLockout - now) / 1000) + 1).toInt()
             return OtpRequestResult.RateLimited(
@@ -1205,6 +1451,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         return when (val sendResult = repository.dispatchOtpEmail(cleanEmail, randomOtp, expiresAt)) {
             is EmailSendResult.Success -> {
                 recentOtpRequests.add(now)
+                userSessionManager.setCustomerOtpFailedAttempts(0)
                 _uiState.update {
                     it.copy(
                         pendingGeneratedOtp = randomOtp,
@@ -1240,7 +1487,8 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         setupPasscode: String? = null
     ): OtpVerifyResult {
         val now = System.currentTimeMillis()
-        val currentLockout = _uiState.value.customerOtpLockoutUntilEpochMs
+        val persistentLockout = userSessionManager.getCustomerOtpLockoutUntil()
+        val currentLockout = maxOf(_uiState.value.customerOtpLockoutUntilEpochMs, persistentLockout)
         if (now < currentLockout) {
             val remainingSec = (((currentLockout - now) / 1000) + 1).toInt()
             return OtpVerifyResult.Locked(
@@ -1264,7 +1512,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
 
         if (isValid) {
             val cleanEmail = email.trim().lowercase()
-            val isAdmin = cleanEmail.equals(OFFICIAL_ADMIN_EMAIL, ignoreCase = true)
+            val isAdmin = cleanEmail.equals(OFFICIAL_ADMIN_EMAIL, ignoreCase = true) || cleanEmail.equals(LEGACY_ADMIN_EMAIL, ignoreCase = true)
             val name = if (!customName.isNullOrBlank()) {
                 customName.trim()
             } else {
@@ -1284,6 +1532,40 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                 userSessionManager.saveUserSession(cleanEmail, name)
             }
 
+            // Durable Persistence: Save user to Room SQLite Database & Cloud Firestore
+            viewModelScope.launch(Dispatchers.IO) {
+                val existing = repository.getUserByEmail(cleanEmail)
+                val hashedPass = userSessionManager.getHashedPasscode(cleanEmail).takeIf { !it.isNullOrBlank() }
+                    ?: existing?.hashedPasscode ?: ""
+                val effectivePhone = existing?.phone?.ifBlank { "" } ?: ""
+                val effectiveNotes = existing?.notes ?: ""
+                val effectiveAddresses = userSessionManager.getAddressesJson(cleanEmail).takeIf { it != "[]" }
+                    ?: existing?.addressesJson ?: "[]"
+                val entity = UserEntity(
+                    email = cleanEmail,
+                    name = name,
+                    phone = effectivePhone,
+                    userType = if (isAdmin) "ADMIN" else (existing?.userType ?: "REGISTERED_VIP"),
+                    hashedPasscode = hashedPass,
+                    notes = effectiveNotes,
+                    addressesJson = effectiveAddresses,
+                    isCurrentSession = true,
+                    createdAtEpochMs = existing?.createdAtEpochMs ?: System.currentTimeMillis()
+                )
+                repository.saveUser(entity)
+                repository.setCurrentSession(cleanEmail)
+                firestoreCatalogService.saveRemoteUser(
+                    email = cleanEmail,
+                    name = name,
+                    phone = effectivePhone,
+                    userType = if (isAdmin) "ADMIN" else (existing?.userType ?: "REGISTERED_VIP"),
+                    notes = effectiveNotes
+                )
+            }
+
+            userSessionManager.setCustomerOtpLockoutUntil(0L)
+            userSessionManager.setCustomerOtpFailedAttempts(0)
+
             _uiState.update {
                 it.copy(
                     isUserLoggedIn = true,
@@ -1302,9 +1584,12 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
             syncCrmUsers()
             return OtpVerifyResult.Success
         } else {
-            val failedCount = _uiState.value.customerOtpFailedAttempts + 1
+            val currentAttempts = maxOf(_uiState.value.customerOtpFailedAttempts, userSessionManager.getCustomerOtpFailedAttempts())
+            val failedCount = currentAttempts + 1
             if (failedCount >= 5) {
                 val lockoutUntil = now + 60_000L
+                userSessionManager.setCustomerOtpLockoutUntil(lockoutUntil)
+                userSessionManager.setCustomerOtpFailedAttempts(failedCount)
                 _uiState.update {
                     it.copy(
                         customerOtpFailedAttempts = failedCount,
@@ -1317,6 +1602,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                     message = "Too many incorrect attempts. For your security, this code was revoked. Please wait 60s."
                 )
             } else {
+                userSessionManager.setCustomerOtpFailedAttempts(failedCount)
                 _uiState.update { it.copy(customerOtpFailedAttempts = failedCount) }
                 val remaining = 5 - failedCount
                 return OtpVerifyResult.InvalidCode(
@@ -1328,13 +1614,74 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     /**
+     * Registers a new user directly with Name, Email, and Passcode without requiring an external email OTP.
+     * Persists immediately to Room database, UserSessionManager, and Firestore.
+     * Guarantees 100% reliable, zero-friction customer account creation.
+     */
+    fun registerUserDirectly(name: String, email: String, passcode: String): Boolean {
+        val cleanEmail = email.trim().lowercase()
+        val cleanName = name.trim().ifBlank { "Sanctuary Member" }
+        val cleanPass = passcode.trim()
+
+        val isAdmin = cleanEmail.equals(OFFICIAL_ADMIN_EMAIL, ignoreCase = true) || cleanEmail.equals(LEGACY_ADMIN_EMAIL, ignoreCase = true)
+
+        userSessionManager.registerUser(cleanEmail, cleanName, cleanPass)
+        userSessionManager.setCustomerOtpLockoutUntil(0L)
+        userSessionManager.setCustomerOtpFailedAttempts(0)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val existing = repository.getUserByEmail(cleanEmail)
+            val hashedPass = userSessionManager.getHashedPasscode(cleanEmail) ?: existing?.hashedPasscode ?: ""
+            val entity = UserEntity(
+                email = cleanEmail,
+                name = cleanName,
+                phone = existing?.phone ?: "",
+                userType = if (isAdmin) "ADMIN" else (existing?.userType ?: "REGISTERED_VIP"),
+                hashedPasscode = hashedPass,
+                notes = existing?.notes ?: "Registered Member",
+                addressesJson = existing?.addressesJson ?: "[]",
+                isCurrentSession = true,
+                createdAtEpochMs = existing?.createdAtEpochMs ?: System.currentTimeMillis()
+            )
+            repository.saveUser(entity)
+            repository.setCurrentSession(cleanEmail)
+            firestoreCatalogService.saveRemoteUser(
+                email = cleanEmail,
+                name = cleanName,
+                phone = existing?.phone ?: "",
+                userType = if (isAdmin) "ADMIN" else (existing?.userType ?: "REGISTERED_VIP"),
+                notes = "Registered Member"
+            )
+        }
+
+        _uiState.update {
+            it.copy(
+                isUserLoggedIn = true,
+                loggedInUserEmail = cleanEmail,
+                loggedInUserName = cleanName,
+                isAdminAuthenticated = isAdmin,
+                pendingGeneratedOtp = null,
+                otpExpiresEpochMs = 0L,
+                customerOtpFailedAttempts = 0,
+                customerOtpLockoutUntilEpochMs = 0L,
+                otpDeliveryMessage = null,
+                userNotificationMessage = if (isAdmin) "Welcome back, Administrator ($OFFICIAL_ADMIN_EMAIL)!" else "Welcome to Good Dream Sanctuary, $cleanName!"
+            )
+        }
+        loadSavedAddresses()
+        syncCrmUsers()
+        return true
+    }
+
+    /**
      * Authenticates an existing user via their saved passcode or admin credentials.
      * Enforces rate limiting against brute-force attacks.
      * Automatically elevates to admin if the official admin email and password match.
      */
     fun loginWithPasscode(email: String, passcode: String): PasscodeAuthResult {
         val now = System.currentTimeMillis()
-        val currentLockout = _uiState.value.customerOtpLockoutUntilEpochMs
+        val persistentLockout = userSessionManager.getCustomerOtpLockoutUntil()
+        val currentLockout = maxOf(_uiState.value.customerOtpLockoutUntilEpochMs, persistentLockout)
         if (now < currentLockout) {
             val remainingSec = (((currentLockout - now) / 1000) + 1).toInt()
             return PasscodeAuthResult.Locked(
@@ -1348,7 +1695,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
 
         if (cleanEmail.isBlank() || !cleanEmail.contains("@") || !cleanEmail.contains(".")) {
             return PasscodeAuthResult.InvalidCredentials(
-                attemptsRemaining = 5 - _uiState.value.customerOtpFailedAttempts,
+                attemptsRemaining = 5 - maxOf(_uiState.value.customerOtpFailedAttempts, userSessionManager.getCustomerOtpFailedAttempts()),
                 message = "Please enter a valid email address."
             )
         }
@@ -1363,7 +1710,29 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
             val isCustomPass = userSessionManager.verifyUserPasscode(cleanEmail, cleanPass)
 
             if (isOfficialPass || isCustomPass) {
+                userSessionManager.setCustomerOtpLockoutUntil(0L)
+                userSessionManager.setCustomerOtpFailedAttempts(0)
                 userSessionManager.saveUserSession(cleanEmail, "Executive Administrator")
+                viewModelScope.launch(Dispatchers.IO) {
+                    val existing = repository.getUserByEmail(cleanEmail)
+                    val hashedPass = userSessionManager.getHashedPasscode(cleanEmail) ?: existing?.hashedPasscode ?: ""
+                    val addresses = userSessionManager.getAddressesJson(cleanEmail).takeIf { it != "[]" }
+                        ?: existing?.addressesJson ?: "[]"
+                    repository.saveUser(
+                        UserEntity(
+                            email = cleanEmail,
+                            name = "Executive Administrator",
+                            phone = existing?.phone ?: "",
+                            userType = "ADMIN",
+                            hashedPasscode = hashedPass,
+                            notes = "Executive Administrator",
+                            addressesJson = addresses,
+                            isCurrentSession = true,
+                            createdAtEpochMs = existing?.createdAtEpochMs ?: System.currentTimeMillis()
+                        )
+                    )
+                    repository.setCurrentSession(cleanEmail)
+                }
                 _uiState.update {
                     it.copy(
                         isUserLoggedIn = true,
@@ -1384,15 +1753,59 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         } else {
             // Standard customer verification
             if (!userSessionManager.hasUserPasscode(cleanEmail)) {
-                return PasscodeAuthResult.UserNotFound(
-                    "No passcode configured for $cleanEmail. Please sign in with OTP or register a new account."
-                )
+                // Check if user exists in Room DB and restore into memory/cache
+                val roomUser = kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+                    repository.getUserByEmail(cleanEmail)
+                }
+                if (roomUser != null && roomUser.hashedPasscode.isNotBlank()) {
+                    userSessionManager.restoreUserFromDatabase(
+                        email = roomUser.email,
+                        name = roomUser.name,
+                        phone = roomUser.phone,
+                        hashedPasscode = roomUser.hashedPasscode,
+                        notes = roomUser.notes,
+                        addressesJson = roomUser.addressesJson
+                    )
+                } else {
+                    return PasscodeAuthResult.UserNotFound(
+                        "No passcode configured for $cleanEmail. Please sign in with OTP or register a new account."
+                    )
+                }
             }
 
             if (userSessionManager.verifyUserPasscode(cleanEmail, cleanPass)) {
+                userSessionManager.setCustomerOtpLockoutUntil(0L)
+                userSessionManager.setCustomerOtpFailedAttempts(0)
                 val name = userSessionManager.getUserNameForEmail(cleanEmail)
                     ?: cleanEmail.substringBefore("@")
                 userSessionManager.saveUserSession(cleanEmail, name)
+                viewModelScope.launch(Dispatchers.IO) {
+                    val existing = repository.getUserByEmail(cleanEmail)
+                    val hashedPass = userSessionManager.getHashedPasscode(cleanEmail) ?: existing?.hashedPasscode ?: ""
+                    val addresses = userSessionManager.getAddressesJson(cleanEmail).takeIf { it != "[]" }
+                        ?: existing?.addressesJson ?: "[]"
+                    repository.saveUser(
+                        UserEntity(
+                            email = cleanEmail,
+                            name = name,
+                            phone = existing?.phone ?: "",
+                            userType = existing?.userType ?: "REGISTERED_VIP",
+                            hashedPasscode = hashedPass,
+                            notes = existing?.notes ?: "",
+                            addressesJson = addresses,
+                            isCurrentSession = true,
+                            createdAtEpochMs = existing?.createdAtEpochMs ?: System.currentTimeMillis()
+                        )
+                    )
+                    repository.setCurrentSession(cleanEmail)
+                    firestoreCatalogService.saveRemoteUser(
+                        email = cleanEmail,
+                        name = name,
+                        phone = existing?.phone ?: "",
+                        userType = existing?.userType ?: "REGISTERED_VIP",
+                        notes = existing?.notes ?: ""
+                    )
+                }
                 _uiState.update {
                     it.copy(
                         isUserLoggedIn = true,
@@ -1414,9 +1827,12 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         }
 
         // Invalid passcode handling
-        val failed = _uiState.value.customerOtpFailedAttempts + 1
+        val currentAttempts = maxOf(_uiState.value.customerOtpFailedAttempts, userSessionManager.getCustomerOtpFailedAttempts())
+        val failed = currentAttempts + 1
         if (failed >= 5) {
             val lockoutUntil = now + 60_000L
+            userSessionManager.setCustomerOtpLockoutUntil(lockoutUntil)
+            userSessionManager.setCustomerOtpFailedAttempts(failed)
             _uiState.update {
                 it.copy(
                     customerOtpFailedAttempts = failed,
@@ -1429,6 +1845,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
             )
         }
 
+        userSessionManager.setCustomerOtpFailedAttempts(failed)
         val remaining = (5 - failed).coerceAtLeast(0)
         _uiState.update { it.copy(customerOtpFailedAttempts = failed) }
         return PasscodeAuthResult.InvalidCredentials(
@@ -1439,7 +1856,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
 
     suspend fun sendUserEmailOtp(email: String): String {
         return when (val res = requestUserEmailOtp(email)) {
-            is OtpRequestResult.Success -> res.otp
+            is OtpRequestResult.Success -> res.message
             is OtpRequestResult.RateLimited -> res.message
             is OtpRequestResult.InvalidEmail -> ""
             is OtpRequestResult.DeliveryFailed -> res.message
@@ -1456,6 +1873,9 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
      */
     fun logoutUser() {
         userSessionManager.clearUserSession()
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.clearCurrentSession()
+        }
         _uiState.update {
             it.copy(
                 isUserLoggedIn = false,
@@ -1465,6 +1885,8 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                 orders = emptyList(),
                 inquiries = emptyList(),
                 savedAddresses = emptyList(),
+                appliedCouponCode = null,
+                appliedDiscountPercent = 0,
                 pendingPostLoginDestination = null,
                 isAuthGateVisible = false,
                 authGateTargetPage = null,
@@ -1480,7 +1902,10 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
     fun deleteAccountAndPurgeData() {
         val currentEmail = _uiState.value.loggedInUserEmail
         userSessionManager.deleteUserAccountAndData(currentEmail)
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!currentEmail.isNullOrBlank()) {
+                repository.deleteUser(currentEmail)
+            }
             repository.clearCart()
             repository.clearWishlist()
         }
@@ -1490,6 +1915,8 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                 loggedInUserEmail = null,
                 loggedInUserName = null,
                 isAdminAuthenticated = false,
+                appliedCouponCode = null,
+                appliedDiscountPercent = 0,
                 cartItems = emptyList(),
                 wishlistIds = emptySet(),
                 orders = emptyList(),
@@ -1515,7 +1942,8 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
      */
     fun loginAdminDetailed(adminId: String, adminPass: String): AdminAuthResult {
         val now = System.currentTimeMillis()
-        val currentLockout = _uiState.value.adminLockoutUntilEpochMs
+        val persistentLockout = userSessionManager.getAdminLockoutUntil()
+        val currentLockout = maxOf(_uiState.value.adminLockoutUntilEpochMs, persistentLockout)
         if (now < currentLockout) {
             val remainingSec = (((currentLockout - now) / 1000) + 1).toInt()
             return AdminAuthResult.Locked(
@@ -1527,7 +1955,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         val cleanId = adminId.trim()
         val cleanPass = adminPass.trim()
 
-        val isIdValid = cleanId.equals(OFFICIAL_ADMIN_EMAIL, ignoreCase = true)
+        val isIdValid = cleanId.equals(OFFICIAL_ADMIN_EMAIL, ignoreCase = true) || cleanId.equals(LEGACY_ADMIN_EMAIL, ignoreCase = true)
 
         val enteredHash = computeAdminHash(cleanPass)
         val expectedBytes = ADMIN_PASSWORD_HASH.toByteArray(Charsets.UTF_8)
@@ -1536,20 +1964,25 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                 MessageDigest.isEqual(enteredBytes, expectedBytes)
 
         if (isIdValid && isPassValid) {
+            userSessionManager.setAdminLockoutUntil(0L)
+            userSessionManager.setAdminFailedAttempts(0)
             _uiState.update {
                 it.copy(
                     isAdminAuthenticated = true,
                     adminFailedAttempts = 0,
                     adminLockoutUntilEpochMs = 0L,
-                    userNotificationMessage = "Executive Admin Studio unlocked for $OFFICIAL_ADMIN_EMAIL."
+                    userNotificationMessage = "Executive Admin Studio unlocked for $cleanId."
                 )
             }
             openPage(ActivePage.ADMIN_PANEL)
             return AdminAuthResult.Success
         } else {
-            val failedCount = _uiState.value.adminFailedAttempts + 1
+            val currentAttempts = maxOf(_uiState.value.adminFailedAttempts, userSessionManager.getAdminFailedAttempts())
+            val failedCount = currentAttempts + 1
             if (failedCount >= 5) {
                 val lockoutUntil = now + 60_000L // 60s lockout
+                userSessionManager.setAdminLockoutUntil(lockoutUntil)
+                userSessionManager.setAdminFailedAttempts(failedCount)
                 _uiState.update {
                     it.copy(
                         adminFailedAttempts = failedCount,
@@ -1561,6 +1994,7 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
                     message = "Security Alert: 5 consecutive failed attempts. Administrative access locked for 60 seconds."
                 )
             } else {
+                userSessionManager.setAdminFailedAttempts(failedCount)
                 _uiState.update { it.copy(adminFailedAttempts = failedCount) }
                 val remaining = 5 - failedCount
                 return AdminAuthResult.InvalidCredentials(
@@ -1597,9 +2031,288 @@ class GoodDreamViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    /**
+     * Opens the real-time customer support chat window for the user.
+     * Generates a stable session key based on user email or device identity.
+     */
+    fun openCustomerSupportChat(orderRef: String? = null, initialMessage: String? = null) {
+        val email = _uiState.value.loggedInUserEmail ?: ""
+        val name = _uiState.value.loggedInUserName?.ifBlank { "Guest Customer" } ?: "Guest Customer"
+        val chatId = if (email.isNotBlank()) {
+            "chat_" + email.replace(".", "_").replace("@", "_at_")
+        } else {
+            "chat_guest_" + (userSessionManager.getFcmToken()?.takeLast(8) ?: "device")
+        }
+
+        val session = SupportChatSession(
+            id = chatId,
+            customerName = name,
+            customerEmail = email,
+            customerPhone = "",
+            lastMessage = initialMessage ?: "Chat opened",
+            lastMessageTimestamp = System.currentTimeMillis(),
+            status = "OPEN",
+            orderReference = orderRef
+        )
+
+        _uiState.update {
+            it.copy(
+                activePage = ActivePage.CUSTOMER_SUPPORT_CHAT,
+                activeModal = ActivePage.CUSTOMER_SUPPORT_CHAT,
+                activeSupportChatSession = session
+            )
+        }
+
+        // Start listening to live messages for this session
+        customerChatListener?.remove()
+        customerChatListener = firestoreCatalogService.observeSupportMessages(chatId) { messages ->
+            _uiState.update { it.copy(supportChatMessages = messages) }
+        }
+
+        if (!initialMessage.isNullOrBlank()) {
+            sendCustomerSupportMessage(initialMessage, orderRef)
+        }
+    }
+
+    /**
+     * Opens the real-time customer support chat modal directly for a specific session ID.
+     * Invoked when the user taps an admin direct message push or system notification.
+     */
+    fun openCustomerSupportChatWithSessionId(chatId: String) {
+        val email = _uiState.value.loggedInUserEmail ?: ""
+        val name = _uiState.value.loggedInUserName?.ifBlank { "Valued Client" } ?: "Valued Client"
+
+        val existingSession = _uiState.value.allSupportSessions.find { it.id == chatId }
+            ?: SupportChatSession(
+                id = chatId,
+                customerName = name,
+                customerEmail = email,
+                customerPhone = "",
+                lastMessage = "Direct Concierge Conversation",
+                lastMessageTimestamp = System.currentTimeMillis(),
+                status = "IN_PROGRESS"
+            )
+
+        _uiState.update {
+            it.copy(
+                activePage = ActivePage.CUSTOMER_SUPPORT_CHAT,
+                activeModal = ActivePage.CUSTOMER_SUPPORT_CHAT,
+                activeSupportChatSession = existingSession
+            )
+        }
+
+        customerChatListener?.remove()
+        customerChatListener = firestoreCatalogService.observeSupportMessages(chatId) { messages ->
+            _uiState.update { it.copy(supportChatMessages = messages) }
+        }
+    }
+
+    /**
+     * Sends a message from the customer to support in real time.
+     */
+    fun sendCustomerSupportMessage(text: String, orderRef: String? = null) {
+        if (text.isBlank()) return
+        val currentSession = _uiState.value.activeSupportChatSession ?: return
+        val senderName = _uiState.value.loggedInUserName?.ifBlank { "Customer" } ?: "Customer"
+
+        val newMessage = SupportChatMessage(
+            chatId = currentSession.id,
+            senderType = SupportSenderType.CUSTOMER,
+            senderName = senderName,
+            text = text.trim(),
+            timestamp = System.currentTimeMillis(),
+            orderReference = orderRef ?: currentSession.orderReference
+        )
+
+        // Optimistic UI update
+        _uiState.update {
+            it.copy(
+                supportChatMessages = it.supportChatMessages + newMessage,
+                isSupportChatSending = true
+            )
+        }
+
+        viewModelScope.launch {
+            val updatedSession = currentSession.copy(
+                lastMessage = text.trim(),
+                lastMessageTimestamp = System.currentTimeMillis(),
+                orderReference = orderRef ?: currentSession.orderReference
+            )
+            firestoreCatalogService.sendSupportMessage(updatedSession, newMessage)
+            _uiState.update { it.copy(isSupportChatSending = false) }
+        }
+    }
+
+    /**
+     * Gracefully closes customer support chat and detaches real-time listener.
+     */
+    fun closeCustomerSupportChat() {
+        customerChatListener?.remove()
+        customerChatListener = null
+        closeActivePage()
+    }
+
+    /**
+     * Starts listening to all customer chat sessions for the Admin CRM Support Desk.
+     */
+    fun loadAdminSupportDesk() {
+        if (!_uiState.value.isAdminAuthenticated) return
+        adminSessionsListener?.remove()
+        adminSessionsListener = firestoreCatalogService.observeAllSupportSessions { sessions ->
+            _uiState.update { it.copy(allSupportSessions = sessions) }
+        }
+    }
+
+    /**
+     * Selects a customer chat thread in the Admin CRM panel and streams its messages.
+     */
+    fun selectAdminChatThread(session: SupportChatSession) {
+        if (!_uiState.value.isAdminAuthenticated) return
+        _uiState.update {
+            it.copy(
+                selectedAdminChatSession = session,
+                adminChatMessages = emptyList()
+            )
+        }
+        adminChatMessagesListener?.remove()
+        adminChatMessagesListener = firestoreCatalogService.observeSupportMessages(session.id) { messages ->
+            _uiState.update { it.copy(adminChatMessages = messages) }
+        }
+    }
+
+    /**
+     * Sends a reply from the store administrator / customer care agent.
+     */
+    fun sendAdminSupportReply(chatId: String, text: String) {
+        if (!_uiState.value.isAdminAuthenticated) return
+        if (text.isBlank()) return
+        val currentSession = _uiState.value.allSupportSessions.find { it.id == chatId }
+            ?: _uiState.value.selectedAdminChatSession ?: return
+
+        val adminMessage = SupportChatMessage(
+            chatId = chatId,
+            senderType = SupportSenderType.SUPPORT_AGENT,
+            senderName = "Good Dream Care Specialist",
+            text = text.trim(),
+            timestamp = System.currentTimeMillis(),
+            orderReference = currentSession.orderReference
+        )
+
+        _uiState.update {
+            it.copy(adminChatMessages = it.adminChatMessages + adminMessage)
+        }
+
+        viewModelScope.launch {
+            val updatedSession = currentSession.copy(
+                lastMessage = text.trim(),
+                lastMessageTimestamp = System.currentTimeMillis(),
+                status = "IN_PROGRESS"
+            )
+            firestoreCatalogService.sendSupportMessage(updatedSession, adminMessage)
+
+            try {
+                NotificationHelper.showAdminDirectMessageNotification(
+                    context = getApplication(),
+                    chatId = chatId,
+                    customerName = currentSession.customerName,
+                    adminMessage = text.trim(),
+                    orderReference = currentSession.orderReference
+                )
+            } catch (e: Exception) {
+                Timber.w(e, "Notice: Could not post notification for admin reply")
+            }
+        }
+    }
+
+    /**
+     * Allows store administrators to message any user directly from the CRM Studio.
+     * Automatically creates or updates the user's SupportChatSession in Firestore,
+     * appends the message into the chat subcollection, and dispatches a high-priority
+     * system notification directly to the user's device notification panel with EXTRA_CHAT_ID.
+     */
+    fun sendAdminDirectMessageToUser(
+        recipientEmail: String,
+        recipientName: String,
+        messageText: String,
+        orderReference: String? = null
+    ) {
+        if (!_uiState.value.isAdminAuthenticated) return
+        if (messageText.isBlank()) return
+        val cleanEmail = recipientEmail.trim().lowercase()
+        val chatId = if (cleanEmail.isNotBlank()) {
+            "chat_" + cleanEmail.replace(".", "_").replace("@", "_at_")
+        } else {
+            "chat_client_" + System.currentTimeMillis()
+        }
+
+        val session = SupportChatSession(
+            id = chatId,
+            customerName = recipientName.ifBlank { "Valued Member" },
+            customerEmail = cleanEmail,
+            customerPhone = "",
+            lastMessage = messageText.trim(),
+            lastMessageTimestamp = System.currentTimeMillis(),
+            status = "IN_PROGRESS",
+            orderReference = orderReference
+        )
+
+        val adminMessage = SupportChatMessage(
+            chatId = chatId,
+            senderType = SupportSenderType.SUPPORT_AGENT,
+            senderName = "Good Dream Care Specialist",
+            text = messageText.trim(),
+            timestamp = System.currentTimeMillis(),
+            orderReference = orderReference
+        )
+
+        viewModelScope.launch {
+            // 1. Commit to Firestore for real-time customer and admin visibility
+            firestoreCatalogService.sendSupportMessage(session, adminMessage)
+
+            // 2. Post notification directly in the user's system notification panel
+            try {
+                NotificationHelper.showAdminDirectMessageNotification(
+                    context = getApplication(),
+                    chatId = chatId,
+                    customerName = session.customerName,
+                    adminMessage = messageText.trim(),
+                    orderReference = orderReference
+                )
+            } catch (e: Exception) {
+                Timber.w(e, "Could not post admin direct message notification")
+            }
+
+            // 3. User feedback for admin
+            _uiState.update {
+                it.copy(
+                    userNotificationMessage = "Direct concierge notification dispatched to ${session.customerName}."
+                )
+            }
+        }
+    }
+
+    /**
+     * Resolves a support chat session in Firestore.
+     */
+    fun resolveSupportChat(chatId: String) {
+        if (!_uiState.value.isAdminAuthenticated) return
+        viewModelScope.launch {
+            firestoreCatalogService.updateSupportChatStatus(chatId, "RESOLVED")
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        customerChatListener?.remove()
+        adminSessionsListener?.remove()
+        adminChatMessagesListener?.remove()
+        productSyncListener?.remove()
+    }
+
     companion object {
-        const val OFFICIAL_ADMIN_EMAIL = "Lakshya190207@gmail.com"
-        // Cryptographic salted hash of authorized master admin password ("GoodDream@2026:SanctuaryAdminSalt2026")
+        const val OFFICIAL_ADMIN_EMAIL = "gooddreamshomedecor@gmail.com"
+        const val LEGACY_ADMIN_EMAIL = "Lakshya190207@gmail.com"
+        // Authorized master admin credential digest (SHA-256 with isolated salt)
         // Prevents plaintext secret scraping from decompiled DEX bytecode.
         private const val ADMIN_SALT = "SanctuaryAdminSalt2026"
         private const val ADMIN_PASSWORD_HASH = "ae696cc810d25ceeaa01174edb12cadaf05bb107a6923ecdf65fff40aadd9db6"
